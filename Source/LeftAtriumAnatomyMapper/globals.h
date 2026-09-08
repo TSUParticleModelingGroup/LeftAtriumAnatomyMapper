@@ -136,7 +136,8 @@ GLuint NumSphereVertices, NumSphereIndices; // Number of vertices and indices in
 // They are initially read in form raw or bin files in the ConfigNodesMuscles folder.
 int PulsePointNode = -1; // Set to -1 to flag it if it is used before it is set.
 int UpNode = -1; // Set to -1 to flag it if it is used before it is set.
-int FrontNode = -1; // Set to -1 to flag it if it is used before it is set.
+int BackNode = -1; // Set to -1 to flag it if it is used before it is set.
+int ReferenceNode = -1; // Set to -1 to flag it if it is used before it is set.
 
 // Holds the name of the medical view you are in for displaying in the terminal print.
 char ViewName[256] = "no view set"; 
@@ -222,10 +223,7 @@ int assignNodes(nodeAttributesStructure*, int, float3, int);
 void clearAllTypes();
 void resetToOriginalOrClear();
 int findClosestNodeToMouse(float3);
-static inline void restoreNodeToDefaultDisplay(int);
-void setPulseNode(int);
-static inline int findTopNodeAboveWallCenterOfMass();
-void setBackAndTopNodes(int);
+void setUpNodeAndBackNode();
 
 // View Functions
 void ReferenceView();

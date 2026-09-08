@@ -183,6 +183,9 @@ int main(int argc, char** argv)
 
 //******************* File Input Functions *****************************************
 
+/*
+ This function reads in the information in the user setup file "SetupLAMapping".
+*/
 void readLAMappingSetupParameters()
 {
 	ifstream data;
@@ -219,15 +222,15 @@ void readLAMappingSetupParameters()
 	}
 	
 	data.close();
-	printf("\n LaMapping Setup Parameters have been read in from BasicSimulationSetup file.\n");
+	printf("\n LaMapping Setup Parameters have been read in from SetupLAMapping file.\n");
 }
 
 /*
  This function 
  1. Opens the node file.
- 2. Finds the number of nodes, the pulse node, the up and front nodes.
-
- 3. Allocates memory to hold the nodes on the CPU and the GPU
+ 2. Reads the number of nodes, the pulse node, the up node and the back. 
+    The reference node is set to be the same as the back node at this time.
+ 3. Allocates memory to hold the nodes on the CPU.
  4. Sets all the nodes to their default or start values.
  5. Reads and assigns the node positions from the node file.
  6. Sets the pulse node.
@@ -263,8 +266,9 @@ void readNodesFromRawFile()
 	printf("\n PulsePointNode = %d", PulsePointNode);
 	fscanf(inFile, "%d", &UpNode);
 	printf("\n UpNode = %d", UpNode);
-	fscanf(inFile, "%d", &FrontNode);
-	printf("\n FrontNode = %d", FrontNode);
+	fscanf(inFile, "%d", &BackNode);
+	printf("\n BackNode = %d", BackNode);
+	ReferenceNode = BackNode;
 	
 	// 3. Allocating memory for the nodes. 
 	Node = (nodeAttributesStructure*)malloc(NumberOfNodes*sizeof(nodeAttributesStructure));
@@ -277,7 +281,7 @@ void readNodesFromRawFile()
 		Node[i].position.z = 0.0;
 		Node[i].position.w = 0.0;
 		
-		// Setting all node colors to not ablated 
+		// Setting all node colors to green
 		Node[i].color.x = 0.0;
 		Node[i].color.y = 1.0;
 		Node[i].color.z = 0.0;
@@ -434,7 +438,7 @@ void readNodesAndMusclesFromBinaryFile()
 	fread(&NumberOfMuscles, sizeof(int), 1, inFile);
 	fread(&PulsePointNode, sizeof(int), 1, inFile);
 	fread(&UpNode, sizeof(int), 1, inFile);
-	fread(&FrontNode, sizeof(int), 1, inFile);
+	fread(&BackNode, sizeof(int), 1, inFile);
 
 	Node = (nodeAttributesStructure*)malloc(NumberOfNodes*sizeof(nodeAttributesStructure));
 	for(int i = 0; i < NumberOfNodes; i++)
@@ -503,7 +507,7 @@ void readNodesAndMusclesFromBinaryFile()
  - NumberOfMuscles
  - PulsePointNode
  - UpNode
- - FrontNode
+ - BackNode
  - per node: type(int), position(float4), muscle[MUSCLES_PER_NODE](int), color(float4)
  - per muscle: type(int), nodeA(int), nodeB(int), naturalLength(float), color(float4)
 */
@@ -561,7 +565,7 @@ void saveBinary()
 	fwrite(&NumberOfMuscles, sizeof(int), 1, binaryFile);
 	fwrite(&PulsePointNode, sizeof(int), 1, binaryFile);
 	fwrite(&UpNode, sizeof(int), 1, binaryFile);
-	fwrite(&FrontNode, sizeof(int), 1, binaryFile);
+	fwrite(&BackNode, sizeof(int), 1, binaryFile);
 
 	// Save nodes.
 	for(int i = 0; i < NumberOfNodes; i++)
@@ -654,7 +658,7 @@ void setup()
 /* This function checks to see if two nodes are too close relative to all the other nodes 
    in the simulations. 
    1: This for loop finds all the nearest neighbor distances and then it calculates the average of this value. 
-      This get a sense of how close nodes are in general. If you have more nodes they arvoid readPulseUpAndFrontNodesFromFile()e going to be 
+      This get a sense of how close nodes are in general. If you have more nodes they are going to be 
       closer together, this number just gets you a scale to compare to.
    2: This for loop checks to see if two nodes are closer than an cutoffDivider times smaller than the 
 
@@ -1096,131 +1100,81 @@ int findClosestNodeToMouse(float3 mousePos)
 	return closestNode;
 }
 
-static inline void restoreNodeToDefaultDisplay(int nodeId)
+/*
+ This function will:
+ 1. Find the node that is closest to being directly above the center of the object (the UpNode).
+ 2. Find the node that is closest to the user from the center of the object (the BackNode).
+    It is called the BackNode because in the reference view which all views are related to you are looking at
+    the bacl of the LA. The UpNode and BackNodes should be set when you are in this view.
+ 3. Set the UpNode and BackNode.
+*/
+void setUpNodeAndBackNode()
 {
-	if(nodeId < 0 || nodeId >= NumberOfNodes) return;
-	Node[nodeId].color = getColorFromType(Node[nodeId].type);
-}
-
-// Sets the pulse node, which drives the beat.
-void setPulseNode(int nodeId)
-{
-	if(nodeId < 0 || nodeId >= NumberOfNodes) return;
-
-	if(PulsePointNode >= 0 && PulsePointNode < NumberOfNodes && PulsePointNode != nodeId)
+	float dx, dy, dz, radiusSquared, test;
+	float4 center;
+	int upId, backId;
+	
+	center = findCenterOfObject();
+	if(RadiusOfLeftAtrium == -1)
 	{
-		restoreNodeToDefaultDisplay(PulsePointNode);
+		printf("\n\n Error: RadiusOfLeftAtrium is used before it is set. Simulation is terminated!");
+		exit(0);
 	}
-
-	PulsePointNode = nodeId;
-	Node[nodeId].color.x = 1.0f;
-	Node[nodeId].color.y = 0.85f;
-	Node[nodeId].color.z = 0.2f;
-	drawPicture();
-}
-
-static inline int findTopNodeAboveWallCenterOfMass()
-{
-	double totalMass = 0.0;
-	double centerX = 0.0;
-	double centerY = 0.0;
-	double centerZ = 0.0;
+	
+	// 1:
+	test = RadiusOfLeftAtrium*RadiusOfLeftAtrium;
+	upId = -1;
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
-		if(Node[i].type == NodeTypeStandard)
+		if(center.y < Node[i].position.y)
 		{
-			totalMass += Node[i].mass;
-			centerX += Node[i].position.x * Node[i].mass;
-			centerY += Node[i].position.y * Node[i].mass;
-			centerZ += Node[i].position.z * Node[i].mass;
-		}
-	}
-
-	if(totalMass <= 0.0)
-	{
-		printf("\n\n Error: unable to compute top-node center of mass because total wall mass is zero or invalid.");
-		return -1;
-	}
-
-	centerX /= totalMass;
-	centerY /= totalMass;
-	centerZ /= totalMass;
-
-	int topNode = -1;
-	double bestXZDist2 = FLOATMAX;
-	double topY = -FLOATMAX;
-	const double xzTol = 1e-6;
-	for(int i = 0; i < NumberOfNodes; i++)
-	{
-		if(Node[i].position.y < centerY)
-		{
-			continue;
-		}
-		double dx = Node[i].position.x - centerX;
-		double dz = Node[i].position.z - centerZ;
-		double xzDist2 = dx*dx + dz*dz;
-		if((xzDist2 + xzTol < bestXZDist2) ||
-		   (fabs(xzDist2 - bestXZDist2) <= xzTol && Node[i].position.y > topY))
-		{
-			bestXZDist2 = xzDist2;
-			topY = Node[i].position.y;
-			topNode = i;
-		}
-	}
-
-	if(topNode == -1)
-	{
-		bestXZDist2 = FLOATMAX;
-		topY = -FLOATMAX;
-		for(int i = 0; i < NumberOfNodes; i++)
-		{
-			double dx = Node[i].position.x - centerX;
-			double dz = Node[i].position.z - centerZ;
-			double xzDist2 = dx*dx + dz*dz;
-			if((xzDist2 + xzTol < bestXZDist2) ||
-			   (fabs(xzDist2 - bestXZDist2) <= xzTol && Node[i].position.y > topY))
+			dx = center.x - Node[i].position.x;
+			dz = center.z - Node[i].position.z;
+			radiusSquared = dx*dx + dz*dz;
+			if(radiusSquared < test) 
 			{
-				bestXZDist2 = xzDist2;
-				topY = Node[i].position.y;
-				topNode = i;
+				upId = i;
+				test = radiusSquared;
 			}
 		}
 	}
-
-	return topNode;
-}
-
-// Sets the back node and computes the top node from the atrial wall center of mass.
-void setBackAndTopNodes(int backNodeId)
-{
-	if(backNodeId < 0 || backNodeId >= NumberOfNodes) return;
-
-	if(FrontNode >= 0 && FrontNode < NumberOfNodes && FrontNode != backNodeId)
+	if(upId == -1)
 	{
-		restoreNodeToDefaultDisplay(FrontNode);
+		printf("\n\n Error: Could not find UpNode. Simulation is terminated!");
+		exit(0);
 	}
-	if(UpNode >= 0 && UpNode < NumberOfNodes)
+	
+	// 2:
+	backId = -1;
+	test = RadiusOfLeftAtrium*RadiusOfLeftAtrium;
+	for(int i = 0; i < NumberOfNodes; i++)
 	{
-		restoreNodeToDefaultDisplay(UpNode);
+		if(center.z < Node[i].position.z)
+		{
+			radiusSquared = Node[i].position.x*Node[i].position.x + Node[i].position.y*Node[i].position.y;
+			dx = center.x - Node[i].position.x;
+			dy = center.y - Node[i].position.y;
+			radiusSquared = dx*dx + dy*dy;
+			if(radiusSquared < test) 
+			{
+				backId = i;
+				test = radiusSquared;
+			}
+		}
 	}
-
-	FrontNode = backNodeId;
-	Node[FrontNode].color.x = 1.0f;
-	Node[FrontNode].color.y = 0.45f;
-	Node[FrontNode].color.z = 0.2f;
-
-	UpNode = findTopNodeAboveWallCenterOfMass();
-	if(UpNode >= 0)
+	if(backId == -1)
 	{
-		Node[UpNode].color.x = 0.2f;
-		Node[UpNode].color.y = 0.95f;
-		Node[UpNode].color.z = 1.0f;
+		printf("\n\n Error: Could not find BackNode. Simulation is terminated");
+		exit(0);
 	}
-
+	
+	// 3:
+	UpNode = upId;
+	BackNode = backId;
+	
+	printf("\n UpNode and BackNode have been set.");
 	drawPicture();
 }
-
-
 
 //******************* View Functions ***********************************************
 
@@ -1256,8 +1210,8 @@ void ReferenceView()
 	AngleOfSimulation.z += angle;
 	
 	// Rotating until front Node is on the positive z axis.
-	angle = atan(Node[FrontNode].position.z/Node[FrontNode].position.x) - PI/2.0;
-	if(Node[FrontNode].position.x < 0.0) angle -= PI;
+	angle = atan(Node[BackNode].position.z/Node[BackNode].position.x) - PI/2.0;
+	if(Node[BackNode].position.x < 0.0) angle -= PI;
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
 		temp = cos(angle)*Node[i].position.x + sin(angle)*Node[i].position.z;
@@ -1446,44 +1400,36 @@ void drawPicture()
 				if(CenterOfSimulation.z - 0.001 < Node[i].position.z)  // Only drawing the nodes in the front half.
 				{
 					glColor3d(Node[i].color.x, Node[i].color.y, Node[i].color.z);
-					/*if(Node[i].isDrawNode)
-					{
-
-
-						glVertex3f(Node[i].position.x, Node[i].position.y, Node[i].position.z);
-					}*/
 				}
 			}
 			else
 			{
 				glColor3d(Node[i].color.x, Node[i].color.y, Node[i].color.z);
-				/*if(Node[i].isDrawNode)
-				{
-					glVertex3f(Node[i].position.x, Node[i].position.y, Node[i].position.z);
-				}*/
 			}
 		}
 		glEnd();
 	}
 
-	// Always draw pulse/top/back markers as point sprites so they stand out regardless of node draw mode.
+	// Always draw PulsePointNode, UpNode, BackNode, and ReferenceNode as point sprites so they stand out regardless of node draw mode.
 	glPointSize(NodePointSize * 1.35f);
 	glBegin(GL_POINTS);
-	if(PulsePointNode >= 0 && PulsePointNode < NumberOfNodes)
-	{
+		
 		glColor3d(1.0, 0.85, 0.2);
 		glVertex3f(Node[PulsePointNode].position.x, Node[PulsePointNode].position.y, Node[PulsePointNode].position.z);
-	}
-	if(UpNode >= 0 && UpNode < NumberOfNodes)
-	{
+		
 		glColor3d(0.2, 0.95, 1.0);
 		glVertex3f(Node[UpNode].position.x, Node[UpNode].position.y, Node[UpNode].position.z);
-	}
-	if(FrontNode >= 0 && FrontNode < NumberOfNodes)
-	{
+		
 		glColor3d(1.0, 0.45, 0.2);
-		glVertex3f(Node[FrontNode].position.x, Node[FrontNode].position.y, Node[FrontNode].position.z);
-	}
+		glVertex3f(Node[BackNode].position.x, Node[BackNode].position.y, Node[BackNode].position.z);
+		
+		glColor3d(1.0, 0.45, 1.0);
+		glVertex3f(Node[ReferenceNode].position.x, Node[ReferenceNode].position.y, Node[ReferenceNode].position.z);
+		
+		float4 center = findCenterOfObject();
+		glColor3d(0.0, 0.0, 1.0);
+		glVertex3f(center.x, center.y, center.z);
+		
 	glEnd();
 	
 	// Drawing muscles
@@ -1835,7 +1781,7 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 				int nodeId = findClosestNodeToMouse(mousePos);
 				if(nodeId != -1)
 				{
-					setPulseNode(nodeId);
+					PulsePointNode = nodeId;
 				}
 			}
 			else if(Simulation.mouseMode == MouseModeBackTop)
@@ -1843,7 +1789,8 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 				int nodeId = findClosestNodeToMouse(mousePos);
 				if(nodeId != -1)
 				{
-					setBackAndTopNodes(nodeId);
+					ReferenceNode = nodeId;
+					setUpNodeAndBackNode();
 				}
 			}
 			else

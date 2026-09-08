@@ -1,0 +1,39 @@
+!!!Important: In this file, do not use the equal sign in a comment, as it triggers the reading of an input.
+
+The units we use in the code are: length in millimeters (mm), mass in grams (g), and time in milliseconds (ms). 
+Any value read from this file that is not in these units will be converted to these units in the code.
+
+Name of the files that holds the nodes and muscles. 
+TheRock
+TheRock3D
+LeftAtriumRealBase
+
+Place the Nodes and Muscle file you would like to run here. 200By600mm200X600Nodes  Rand200X200 
+
+--InputFileName = test.bin
+
+Connection line width for the lines that represent muscles connecting the nodes:
+1.0 to 3.0 works well for simulations with many nodes, and 5.0 to 10.0 is suitable for simulations with fewer nodes.
+It should be a float.
+	
+--LineWidth = 1.0;
+
+Set the size of the node spheres here. It is scaled by the RadiusOfLeftAtrium. A good value is 0.01.
+It should be a float.
+
+--NodeRadiusAdjustment = 0.005;
+
+Set the size of a point drawn if shperes are turned off but you still want to see the node. A good value is 5.0 to 10.0.
+It should be a float.
+
+--NodePointSize = 10.0;
+
+Background color (Background of the scene): red, green, blue.
+All three should be floats.
+
+--BackGroundRed = 0.0;
+--BackGroundGreen = 0.0;
+--BackGroundBlue = 0.0;
+
+
+

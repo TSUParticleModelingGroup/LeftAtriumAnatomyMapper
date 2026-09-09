@@ -71,7 +71,7 @@ const int MouseModePulseNode = 100;
 const int MouseModeBackTop = 101;
 
 // Color types
-const float4 ColorStandard = {1.0f, 0.0f, 0.0f, 0.0f}; // Red for standard nodes (to reduce contrast)
+const float4 ColorStandardLA = {1.0f, 0.0f, 0.0f, 0.0f}; // Red for standard nodes (to reduce contrast)
 const float4 ColorBachmannsBundle = {0.2f, 0.2f, 1.0f, 0.0f}; // Blue for Bachmann's Bundle nodes and muscles by default.
 const float4 ColorAppendage = {1.0f, 0.8f, 0.3f, 0.0f}; // Orange for left atrial appendage nodes and muscles by default.
 const float4 ColorScarTissue = {0.6f, 0.6f, 0.6f, 0.0f}; // Gray for scar tissue nodes and muscles by default.
@@ -79,18 +79,16 @@ const float4 ColorPulmonaryVeins = {1.0f, 0.4f, 0.7f, 0.0f}; // Pink for pulmona
 const float4 ColorMitralValve = {0.5f, 0.0f, 0.5f, 0.0f}; // Purple for mitral valve nodes and muscles by default.
 
 // Structures
-// Everything a node holds. We have 1 on the CPU and 1 on the GPU
+// Everything a node holds.
 typedef struct 
 {
 	float4 position;
 	float4 color;
 	int type;
 	int muscle[MUSCLES_PER_NODE];
-	float mass = 0.005266; // We took the average mass per node from the original program. Mass is only used to calculate COM for rotations in this program so any number should work here.
 } nodeAttributesStructure;
 
-// Everything a muscle holds. We have 1 on the CPU and 1 on the GPU
-// BMW need to add length here
+// Everything a muscle holds.
 typedef struct 
 {
 	int type;
@@ -101,7 +99,6 @@ typedef struct
 } muscleAttributesStructure; 
 
 // This structure will contain all the switches that control the actions in the code.
-// 
 typedef struct 
 {
 	int mouseMode; // can be used to set the mode of the mouse, like ablate mode, ectopic beat mode, adjust muscle area mode, or adjust muscle line mode.
@@ -194,10 +191,10 @@ int Run = 1;
 
 //*************** Function Prototypes **************************
 // File input Functions
-void readLAMAppingSetupParameters();
-void readNodesFromRawFile();
-void readMusclesFromRawFile();
-void readNodesAndMusclesFromBinaryFile();
+void readLAMAppingSetupParameters();  //Done
+void readNodesFromRawFile(); //Done 
+void readMusclesFromRawFile(); //Done
+void readNodesAndMusclesFromBinaryFile(); //Done
 
 // File Output Functions
 void saveBinary();

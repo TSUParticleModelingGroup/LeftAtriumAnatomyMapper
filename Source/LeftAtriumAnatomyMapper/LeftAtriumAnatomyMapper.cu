@@ -227,30 +227,27 @@ void readLAMappingSetupParameters()
 
 /*
  This function 
- 1. Opens the node file.
- 2. Reads the number of nodes, the pulse node, the up node and the back. 
+ 1. Opens a raw nodes file.
+ 2. Reads the number of nodes, the pulse node, the up node and the back node. 
     The reference node is set to be the same as the back node at this time.
  3. Allocates memory to hold the nodes on the CPU.
  4. Sets all the nodes to their default or start values.
  5. Reads and assigns the node positions from the node file.
- 6. Sets the pulse node.
 */
 void readNodesFromRawFile()
 {	
 	FILE *inFile;
 	float x, y, z;
-	int id, nodeType;
+	int id;
 	char fileName[256];
 
-	
+	// 1: Opening the node file.
 	// Generating the name of the file that holds the nodes.
 	char directory[] = "../NodesMusclesLAMapping/raw/";
 	strcpy(fileName, "");
 	strcat(fileName, directory);
 	strcat(fileName, NodesMusclesFileName);
 	strcat(fileName, "/Nodes");
-	
-	// 1. Opening the node file.
 	inFile = fopen(fileName,"r");
 	if(inFile == NULL)
 	{
@@ -259,21 +256,19 @@ void readNodesFromRawFile()
 		exit(0);
 	}
 	
-	// 2. Reading the header information.
+	// 2: Reading the header information.
 	fscanf(inFile, "%d", &NumberOfNodes);
 	printf("\n NumberOfNodes = %d", NumberOfNodes);
 	fscanf(inFile, "%d", &PulsePointNode);
-	printf("\n PulsePointNode = %d", PulsePointNode);
 	fscanf(inFile, "%d", &UpNode);
-	printf("\n UpNode = %d", UpNode);
 	fscanf(inFile, "%d", &BackNode);
-	printf("\n BackNode = %d", BackNode);
 	ReferenceNode = BackNode;
 	
-	// 3. Allocating memory for the nodes. 
+	
+	// 3: Allocating memory for the nodes. 
 	Node = (nodeAttributesStructure*)malloc(NumberOfNodes*sizeof(nodeAttributesStructure));
 	
-	// 4. Setting all nodes to zero or their default settings; 
+	// 4: Setting all nodes to their default settings; 
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
 		Node[i].position.x = 0.0;
@@ -281,62 +276,58 @@ void readNodesFromRawFile()
 		Node[i].position.z = 0.0;
 		Node[i].position.w = 0.0;
 		
-		// Setting all node colors to green
-		Node[i].color.x = 0.0;
+		// Setting all node colors to white
+		Node[i].color.x = 1.0;
 		Node[i].color.y = 1.0;
-		Node[i].color.z = 0.0;
+		Node[i].color.z = 1.0;
 		Node[i].color.w = 0.0;
-
-		Node[i].mass = 0.005266; // We took the average mass per node from the original program. Mass is only used to calculate COM for rotations in this program so any number should work here.
-		Node[i].type = 0; // Setting the type to 0 for all nodes. We will use this to flag special nodes, like the pulse node and the bachmann's bundle nodes.	
+		
+		// Setting the type to 0 for all nodes. Type 0 is for a general LA node, which is what all nodes start out as.
+		Node[i].type = 0; 
+		
+		// Sets all the muscle a node can connect to as -1 which indicates that not muscle is connect at this time.
 		for(int j = 0; j < MUSCLES_PER_NODE; j++)
 		{
-			Node[i].muscle[j] = -1; // -1 sets the muscle to not used.
+			Node[i].muscle[j] = -1; 
 		}
 	}
-	
-	printf("\n\nFile %s has been opened and memory has been allocated for the nodes.\n", fileName);
 
-	// 5. Reading in the nodes positions.
-	// Format: id type x y z
+	// 5: Reading in the nodes positions.
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
-		fscanf(inFile, "%d %d %f %f %f", &id, &nodeType, &x, &y, &z);
+		fscanf(inFile, "%d %f %f %f", &id, &x, &y, &z);
 
 		Node[id].position.x = x;
 		Node[id].position.y = y;
 		Node[id].position.z = z;
-		Node[id].type = nodeType;
-		// Color nodes by type for debugging/visual validation.
-		Node[id].color = getColorFromType(nodeType);
+		Node[id].color = ColorStandardLA;
 	}
 	
 	fclose(inFile);
-	printf("\n Nodes positions have been read in from raw file.\n");
+	printf("\n Nodes have been read in from raw file.\n");
 }
 
 /*
  This function 
- 1. Opens the muscles file.
+ 1. Opens a raw muscles file.
  2. Reads the number of muscles.
- 3. Allocates memory to hold the muscles on the CPU and the GPU
+ 3. Allocates memory to hold the muscles.
  4. Sets all the muscles to their default or start values.
  5. Reads and connects the muscle to the two nodes it is connected to.
 */
 void readMusclesFromRawFile()
 {	
 	FILE *inFile;
-	int id, idNode1, idNode2, muscleType;
+	int id, idNode1, idNode2; //, muscleType;
 	char fileName[256];
     
+    	// 1: Opening the muscle file
 	// Generating the name of the file that holds the muscles.
 	char directory[] = "../NodesMusclesLAMapping/raw/";
 	strcpy(fileName, "");
 	strcat(fileName, directory);
 	strcat(fileName, NodesMusclesFileName);
 	strcat(fileName, "/Muscles");
-	
-	// Opening the muscle file.
 	inFile = fopen(fileName,"r");
 	if (inFile == NULL)
 	{
@@ -345,31 +336,28 @@ void readMusclesFromRawFile()
 		exit(0);
 	}
 	
+	// 2: Reading the number of muscles.
 	fscanf(inFile, "%d", &NumberOfMuscles);
 	printf("\n NumberOfMuscles = %d", NumberOfMuscles);
 	
-	// Allocating memory for the muscles. 
+	// 3: Allocating memory for the muscles. 
 	Muscle = (muscleAttributesStructure*)malloc(NumberOfMuscles*sizeof(muscleAttributesStructure));
 	
-	// Setting all muscles to their default settings; 
+	// 4: Setting all muscles to their default settings; 
 	for(int i = 0; i < NumberOfMuscles; i++)
 	{
 		Muscle[i].type = 0;
 		Muscle[i].nodeA = -1;
 		Muscle[i].nodeB = -1;
-
-		// Setting all muscle colors to default color (red)
-		Muscle[i].color.x = 1.0;
-		Muscle[i].color.y = 0.0;
-		Muscle[i].color.z = 0.0;
-		Muscle[i].color.w = 0.0;
+		Muscle[i].naturalLength = -1.0; 
+		Muscle[id].color = ColorStandardLA;
 	}
 	
 	// Reading in from raw file what two nodes the muscle connects.
 	// Format: id type nodeA nodeB
 	for(int i = 0; i < NumberOfMuscles; i++)
 	{
-		if(fscanf(inFile, "%d %d %d %d", &id, &muscleType, &idNode1, &idNode2) != 4)
+		if(fscanf(inFile, "%d %d %d", &id, &idNode1, &idNode2) != 3)
 		{
 			printf("\n\n Invalid muscle format. Expected: id type nodeA nodeB.");
 			printf("\n The simulation has been terminated.\n\n");
@@ -389,7 +377,7 @@ void readMusclesFromRawFile()
 			printf("\n The simulation has been terminated.\n\n");
 			exit(0);
 		}
-		Muscle[id].type = muscleType;
+		Muscle[id].type = 0;  // Default to LA muscle.
 		Muscle[id].nodeA = idNode1;
 		Muscle[id].nodeB = idNode2;
 	}
@@ -399,8 +387,12 @@ void readMusclesFromRawFile()
 }
 
 /*
- Reads node/muscle data from a LAMapping-exported binary file.
+ This function opens and read a binary nodes and muscles file.
  If NodesMusclesFileName contains .bin, it is treated as a filename under ../NodesMuscles/bin/.
+ 1. Opens the file.
+ 2. Reads the header information.
+ 3. Reads the nodes.
+ 4. Reads the muscles.
 */
 void readNodesAndMusclesFromBinaryFile()
 {
@@ -408,15 +400,14 @@ void readNodesAndMusclesFromBinaryFile()
 	char fileName[512];
 	char *dot;
 
+	// 1:
 	strcpy(fileName, "../NodesMusclesLAMapping/bin/");
 	strcat(fileName, NodesMusclesFileName);
-
 	dot = strrchr(fileName, '.');
 	if(dot == NULL || strcmp(dot, ".bin") != 0)
 	{
 		strcat(fileName, ".bin");
 	}
-
 	inFile = fopen(fileName, "rb");
 	if(inFile == NULL)
 	{
@@ -425,40 +416,16 @@ void readNodesAndMusclesFromBinaryFile()
 		exit(0);
 	}
 
-	int version = 0;
-	fread(&version, sizeof(int), 1, inFile);
-		if(version != 1)
-	{
-		printf("\n\n Unsupported binary version %d in %s.", version, fileName);
-		printf("\n The simulation has been terminated.\n\n");
-		exit(0);
-	}
-
+	// 2:
 	fread(&NumberOfNodes, sizeof(int), 1, inFile);
 	fread(&NumberOfMuscles, sizeof(int), 1, inFile);
 	fread(&PulsePointNode, sizeof(int), 1, inFile);
 	fread(&UpNode, sizeof(int), 1, inFile);
-	fread(&BackNode, sizeof(int), 1, inFile);
+	fread(&BackNode, sizeof(int), 1, inFile); 
+	fread(&ReferenceNode, sizeof(int), 1, inFile);
 
+	// 3:
 	Node = (nodeAttributesStructure*)malloc(NumberOfNodes*sizeof(nodeAttributesStructure));
-	for(int i = 0; i < NumberOfNodes; i++)
-	{
-		Node[i].position.x = 0.0;
-		Node[i].position.y = 0.0;
-		Node[i].position.z = 0.0;
-		Node[i].position.w = 0.0;
-		Node[i].color.x = 0.0;
-		Node[i].color.y = 1.0;
-		Node[i].color.z = 0.0;
-		Node[i].color.w = 0.0;
-		Node[i].mass = 0.005266;
-		Node[i].type = 0;
-		for(int j = 0; j < MUSCLES_PER_NODE; j++)
-		{
-			Node[i].muscle[j] = -1;
-		}
-	}
-
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
 		fread(&Node[i].type, sizeof(int), 1, inFile);
@@ -467,21 +434,10 @@ void readNodesAndMusclesFromBinaryFile()
 		fread(&Node[i].color, sizeof(float4), 1, inFile);
 	}
 
+	// 4:
 	Muscle = (muscleAttributesStructure*)malloc(NumberOfMuscles*sizeof(muscleAttributesStructure));
 	for(int i = 0; i < NumberOfMuscles; i++)
 	{
-		Muscle[i].type = 0;
-		Muscle[i].nodeA = -1;
-		Muscle[i].nodeB = -1;
-		Muscle[i].color.x = 1.0;
-		Muscle[i].color.y = 0.0;
-		Muscle[i].color.z = 0.0;
-		Muscle[i].color.w = 0.0;
-	}
-
-	for(int i = 0; i < NumberOfMuscles; i++)
-	{
-		//float naturalLength;
 		fread(&Muscle[i].type, sizeof(int), 1, inFile);
 		fread(&Muscle[i].nodeA, sizeof(int), 1, inFile);
 		fread(&Muscle[i].nodeB, sizeof(int), 1, inFile);
@@ -502,12 +458,12 @@ void readNodesAndMusclesFromBinaryFile()
  ../NodesMuscles/bin/<NodesMusclesFileName>_<timestamp>.bin
 
  Binary layout:
- - version
  - NumberOfNodes
  - NumberOfMuscles
  - PulsePointNode
  - UpNode
  - BackNode
+ - ReferenceNode
  - per node: type(int), position(float4), muscle[MUSCLES_PER_NODE](int), color(float4)
  - per muscle: type(int), nodeA(int), nodeB(int), naturalLength(float), color(float4)
 */
@@ -515,22 +471,6 @@ void saveBinary()
 {
 	FILE *binaryFile;
 	char fileName[512];
-
-	// We cannot save unless both arrays are loaded in memory.
-	if(Node == NULL || Muscle == NULL)
-	{
-		printf("\n\n Node/Muscle data is not loaded.\n");
-		snprintf(BinarySaveStatusMessage, sizeof(BinarySaveStatusMessage), "Binary save failed: Node/Muscle data is not loaded.");
-		return;
-	}
-
-	// Require a base file name so we can generate a proper output path.
-	if(NodesMusclesFileName[0] == '\0')
-	{
-		printf("\n\n NodesMusclesFileName is empty.\n");
-		snprintf(BinarySaveStatusMessage, sizeof(BinarySaveStatusMessage), "Binary save failed: NodesMusclesFileName is empty.");
-		return;
-	}
 
 	// Ensure muscle types reflect the current node typing before export.
 	if(!setMuscleTypes())
@@ -556,16 +496,13 @@ void saveBinary()
 		return;
 	}
 
-	// Header for basic validation by future readers.
-	int version = 1; // Keep this aligned with the binary readers in model/LAMapping.
-	fwrite(&version, sizeof(int), 1, binaryFile);
-
 	// Save counts and required orientation nodes.
 	fwrite(&NumberOfNodes, sizeof(int), 1, binaryFile);
 	fwrite(&NumberOfMuscles, sizeof(int), 1, binaryFile);
 	fwrite(&PulsePointNode, sizeof(int), 1, binaryFile);
 	fwrite(&UpNode, sizeof(int), 1, binaryFile);
 	fwrite(&BackNode, sizeof(int), 1, binaryFile);
+	fwrite(&ReferenceNode, sizeof(int), 1, binaryFile);
 
 	// Save nodes.
 	for(int i = 0; i < NumberOfNodes; i++)
@@ -845,13 +782,13 @@ int getTypePriority(int nodeType)
 */
 float4 getMuscleColorFromType(int type)
 {
-	if(type == NodeTypeStandard) return ColorStandard;
+	if(type == NodeTypeStandard) return ColorStandardLA;
 	if(type == NodeTypeBachmannBundle) return ColorBachmannsBundle;
 	if(type == NodeTypeAppendage) return ColorAppendage;
 	if(type == NodeTypeScarTissue) return ColorScarTissue;
 	if(type == NodeTypePulmonaryVeins) return ColorPulmonaryVeins;
 	if(type == NodeTypeMitralValve) return ColorMitralValve;
-	return ColorStandard;
+	return ColorStandardLA;
 }
 
 /*
@@ -945,13 +882,13 @@ float4 getColorFromType(int type)
 {
 	switch (type)
 	{
-		case NodeTypeStandard:		return ColorStandard;
-		case NodeTypeBachmannBundle:		return ColorBachmannsBundle;
+		case NodeTypeStandard:		return ColorStandardLA;
+		case NodeTypeBachmannBundle:	return ColorBachmannsBundle;
 		case NodeTypeAppendage:		return ColorAppendage;
-		case NodeTypeScarTissue:		return ColorScarTissue;
-		case NodeTypePulmonaryVeins:		return ColorPulmonaryVeins;
-		case NodeTypeMitralValve:		return ColorMitralValve;
-		default:				return ColorStandard;
+		case NodeTypeScarTissue:	return ColorScarTissue;
+		case NodeTypePulmonaryVeins:	return ColorPulmonaryVeins;
+		case NodeTypeMitralValve:	return ColorMitralValve;
+		default:			return ColorStandardLA;
 	}
 }
 

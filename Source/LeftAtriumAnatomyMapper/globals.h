@@ -132,9 +132,10 @@ GLuint NumSphereVertices, NumSphereIndices; // Number of vertices and indices in
 // This is the node that the beat initiates from and the two nodes along with the center that orients the object.
 // They are initially read in form raw or bin files in the ConfigNodesMuscles folder.
 int PulsePointNode = -1; // Set to -1 to flag it if it is used before it is set.
-int UpNode = -1; // Set to -1 to flag it if it is used before it is set.
-int BackNode = -1; // Set to -1 to flag it if it is used before it is set.
-int ReferenceNode = -1; // Set to -1 to flag it if it is used before it is set.
+int ReferenceUpNode = -1; // Set to -1 to flag it if it is used before it is set.
+int ReferenceBackNode = -1; // Set to -1 to flag it if it is used before it is set.
+int ReferencePointNode = -1; // Set to -1 to flag it if it is used before it is set.
+float4 ReferenceCenter = {0.0f, 0.0f, 0.0f, 0.0f};
 
 // Holds the name of the medical view you are in for displaying in the terminal print.
 char ViewName[256] = "no view set"; 
@@ -205,6 +206,7 @@ void checkNodes();
 void linkRawNodesToMuscles();
 void setMuscleNaturalLength();
 void setRemainingParameters();  // BMW Look into if these are needed.
+double findAverageRadiusOfObject();
 
 // User Action Functions
 int getTypePriority(int);
@@ -214,13 +216,10 @@ bool setMuscleTypes();
 void toggleNodeSelector(simulationSwitchesStructure*, int);
 void setMouseMode(simulationSwitchesStructure*, int);
 float4 getColorFromType(int);
-int setNodeMode(nodeAttributesStructure*, int);
-int checkIfNodeIsSelected(nodeAttributesStructure*, float3);
-int assignNodes(nodeAttributesStructure*, int, float3, int);
+void assignNodes(float3, int);
 void clearAllTypes();
 void resetToOriginalOrClear();
-int findClosestNodeToMouse(float3);
-void setUpNodeAndBackNode();
+void setReferencePoints();
 
 // View Functions
 void ReferenceView();
@@ -232,6 +231,7 @@ void setView(int);
 void drawPicture();
 void renderSphereVBO();
 void renderSphere(float, int, int);
+void createSphereVBO(float, int, int);
 
 // Callback Functions
 void reshapeCallback(GLFWwindow*, int, int);
@@ -245,14 +245,14 @@ static inline void ShowTooltip(const char* text);
 void createGUI();
 
 // Utility Functions
-double findAverageRadiusOfObject();
 float4 findCenterOfObject();
 void centerObject();
 void rotateObject(float, int, int, int);
 void translateObject(float, float, float);
+bool isNodeInMouseSphere(int, float3); //done
+int findClosestNodeToMouse(float3); //done
 std::string getTimeStamp();
 void shutdownAndCleanup();
-void createSphereVBO(float, int, int);
 
 
 

@@ -17,10 +17,10 @@ nvcc -c ../third_party/imgui/imgui_impl_glfw.cpp ../third_party/imgui/imgui_impl
 
 
 nvcc LeftAtriumAnatomyMapper.cu ../third_party/glad.c\
-     imgui.o imgui_draw.o imgui_tables.o imgui_widgets.o imgui_impl_glfw.o imgui_impl_opengl3.o -o LAConfig \
+     imgui.o imgui_draw.o imgui_tables.o imgui_widgets.o imgui_impl_glfw.o imgui_impl_opengl3.o -o LAMapper \
      -lglfw -lGL -lGLU -lm -lX11 -lXrandr -lXinerama -lXcursor -lXi
 
 #move svtconfig to ExecutableFiles
-mv LAConfig ../../ExecutableFiles
+mv LAMapper ../../ExecutableFiles
 
 rm -f *.o

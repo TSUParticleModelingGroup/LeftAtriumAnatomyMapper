@@ -260,9 +260,9 @@ void readNodesFromRawFile()
 	fscanf(inFile, "%d", &NumberOfNodes);
 	printf("\n NumberOfNodes = %d", NumberOfNodes);
 	fscanf(inFile, "%d", &PulsePointNode);
-	fscanf(inFile, "%d", &UpNode);
-	fscanf(inFile, "%d", &BackNode);
-	ReferenceNode = BackNode;
+	fscanf(inFile, "%d", &ReferenceUpNode);
+	fscanf(inFile, "%d", &ReferenceBackNode);
+	ReferencePointNode = ReferenceBackNode;
 	
 	
 	// 3: Allocating memory for the nodes. 
@@ -420,9 +420,10 @@ void readNodesAndMusclesFromBinaryFile()
 	fread(&NumberOfNodes, sizeof(int), 1, inFile);
 	fread(&NumberOfMuscles, sizeof(int), 1, inFile);
 	fread(&PulsePointNode, sizeof(int), 1, inFile);
-	fread(&UpNode, sizeof(int), 1, inFile);
-	fread(&BackNode, sizeof(int), 1, inFile); 
-	fread(&ReferenceNode, sizeof(int), 1, inFile);
+	fread(&ReferenceUpNode, sizeof(int), 1, inFile);
+	fread(&ReferenceBackNode, sizeof(int), 1, inFile); 
+	fread(&ReferencePointNode, sizeof(int), 1, inFile);
+	fread(&ReferenceCenter, sizeof(float4), 1, inFile);
 
 	// 3:
 	Node = (nodeAttributesStructure*)malloc(NumberOfNodes*sizeof(nodeAttributesStructure));
@@ -500,9 +501,10 @@ void saveBinary()
 	fwrite(&NumberOfNodes, sizeof(int), 1, binaryFile);
 	fwrite(&NumberOfMuscles, sizeof(int), 1, binaryFile);
 	fwrite(&PulsePointNode, sizeof(int), 1, binaryFile);
-	fwrite(&UpNode, sizeof(int), 1, binaryFile);
-	fwrite(&BackNode, sizeof(int), 1, binaryFile);
-	fwrite(&ReferenceNode, sizeof(int), 1, binaryFile);
+	fwrite(&ReferenceUpNode, sizeof(int), 1, binaryFile);
+	fwrite(&ReferenceBackNode, sizeof(int), 1, binaryFile);
+	fwrite(&ReferencePointNode, sizeof(int), 1, binaryFile);
+	fwrite(&ReferenceCenter, sizeof(float4), 1, binaryFile);
 
 	// Save nodes.
 	for(int i = 0; i < NumberOfNodes; i++)
@@ -751,6 +753,33 @@ void setRemainingParameters()
 	MouseWheelPos = 0;
 }
 
+/*
+This funciton finds the average radius of the object by 
+	1. Finding the center of the object.
+	2. Finding the distance from each node to the center, which is the radius of that node.
+	3. Averaging all those radii together to get the average radius of the object.
+	4. Returns 1 on success and 0 on failure
+*/
+double findAverageRadiusOfObject() 
+{
+	double averageRadius;
+	float4 centerOfObject = findCenterOfObject();
+
+	// Calculate the distance from each node to the center
+	float totalRadius = 0.0f;
+	for (int i=0; i < NumberOfNodes; i++)
+	{
+		float dx = Node[i].position.x - centerOfObject.x;
+		float dy = Node[i].position.y - centerOfObject.y;
+		float dz = Node[i].position.z - centerOfObject.z;
+		float distance = sqrtf(dx*dx + dy*dy + dz*dz);
+		totalRadius += distance;
+	}
+
+	averageRadius = totalRadius/NumberOfNodes;
+	printf("The average radius of the object is %f mm\n", averageRadius); // The average radius for RealisticLA is around 25.8 mm
+	return averageRadius;
+}
 
 //******************* User Action Functions ********************************************
 
@@ -892,93 +921,23 @@ float4 getColorFromType(int type)
 	}
 }
 
-// Because of the way mouse modes are defined in the header, we can conveniently pass in the mouse mode as the node type.
-int setNodeMode(nodeAttributesStructure* node, int nodeType)
+void assignNodes(float3 mousePos, int nodeType)
 {
-	// Input validation
-	if (!node) 
+	for(int i = 0; i < NumberOfNodes; i++)
 	{
-		printf("setNodeMode Error: node pointer is null.\n");
-		return 0; // NULL PTR
-	}
-	if (nodeType < 0) 
-	{
-		printf("setNodeMode Error: nodeType %d is invalid. nodeType must be non-negative.\n", nodeType);
-		return 0; // INVALID NODE TYPE
-	}
-
-	// Set the type and color
-	node->type = nodeType;
-	node->color = getColorFromType(nodeType);
-
-	// Reclassify any muscles connected to this node so muscle colors update immediately.
-	for(int i = 0; i < MUSCLES_PER_NODE; i++)
-	{
-		int muscleId = node->muscle[i];
-		if(muscleId != -1)
+		if(isNodeInMouseSphere(i, mousePos) == true)
 		{
-			if(!setMuscleTypeAndColor(muscleId))
+			Node[i].type = nodeType;
+			Node[i].color = getColorFromType(nodeType);
+			for(int j = 0; j < MUSCLES_PER_NODE; j++)
 			{
-				printf("setNodeMode Error: could not update muscle %d after node type change.\n", muscleId);
-				return 0;
+				if(Node[i].muscle[j] != -1)
+				{
+					Muscle[Node[i].muscle[j]].color = getColorFromType(nodeType);
+				}
 			}
 		}
 	}
-	//printf("Node set to type %d with color (%f, %f, %f, %f)\n", nodeType, node->color.x, node->color.y, node->color.z, node->color.w);
-	return 1; // SUCCESS
-}
-
-// This function returns 1 if a node is selected base on the mouse position and the hit multiplier, and 0 if it is not selected.
-int checkIfNodeIsSelected(nodeAttributesStructure* node, float3 mousePos)
-{
-	// Input validation
-	if (!node) 
-	{
-		printf("checkIfNodeIsSelected Error: Node pointer is null.\n");
-		return 0; // Return false for now but this is technicall a NULL PTR error.
-	}
-	float dx = node->position.x - mousePos.x;
-	float dy = node->position.y - mousePos.y;
-	float dz = node->position.z - mousePos.z;
-	float distSquared = dx*dx + dy*dy + dz*dz;
-	// TODO : another location where a single radius of mouse selector would be nice.
-	if (distSquared < HitMultiplier * HitMultiplier * RadiusOfLeftAtrium * RadiusOfLeftAtrium)
-	{ // If the distance from the mouse to the node is less than the hit multiplier, we consider that a hit.
-		//printf("Node at (%f, %f, %f) is selected.\n", node->position.x, node->position.y, node->position.z);
-		return 1; // selected
-	}
-	return 0;
-}
-
-int assignNodes(nodeAttributesStructure* nodes, int length, float3 mousePos, int nodeType)
-{
-	// Input validation
-	if (!nodes) 
-	{
-		printf("assignNodes Error: Node pointer is null.\n");
-		return 0; // NULL PTR
-	}
-	if (length <= 0) 
-	{
-		printf("assignNodes Error: length must be greater than zero.\n");
-		return 0; // INVALID LENGTH
-	}
-	if (nodeType < 0) 
-	{
-		printf("assignNodes Error: nodeType %d is invalid. nodeType must be non-negative.\n", nodeType);
-		return 0; // INVALID NODE TYPE
-	}
-
-	for (int i = 0; i < length; i++)
-	{
-		if (checkIfNodeIsSelected(&nodes[i], mousePos))
-		{
-			if (!setNodeMode(&nodes[i], nodeType)) return 0; // Return 0 if a node failed to be assigned.
-			//printf("Node at (%f, %f, %f) is selected and set to type %d.\n", nodes[i].position.x, nodes[i].position.y, nodes[i].position.z, nodeType);
-		}
-	}
-
-	return 1; // Return Success if all nodes were assigned successfully (or not selected).
 }
 
 // Clears all node types to the default (STANDARD) and updates muscles/colors.
@@ -1014,49 +973,19 @@ void resetToOriginalOrClear()
 	clearAllTypes();
 }
 
-// Returns the closest node to the mouse cursor within the selection radius, or -1 if none are close enough.
-int findClosestNodeToMouse(float3 mousePos)
-{
-	int closestNode = -1;
-	float closestDistSquared = FLOATMAX;
-	float hitRadiusSquared = HitMultiplier * HitMultiplier * RadiusOfLeftAtrium * RadiusOfLeftAtrium;
-
-	for(int i = 0; i < NumberOfNodes; i++)
-	{
-		float dx = Node[i].position.x - mousePos.x;
-		float dy = Node[i].position.y - mousePos.y;
-		float dz = Node[i].position.z - mousePos.z;
-		float distSquared = dx*dx + dy*dy + dz*dz;
-		if(distSquared < hitRadiusSquared && distSquared < closestDistSquared)
-		{
-			closestDistSquared = distSquared;
-			closestNode = i;
-		}
-	}
-
-	return closestNode;
-}
-
 /*
  This function will:
  1. Find the node that is closest to being directly above the center of the object (the UpNode).
  2. Find the node that is closest to the user from the center of the object (the BackNode).
     It is called the BackNode because in the reference view which all views are related to you are looking at
     the bacl of the LA. The UpNode and BackNodes should be set when you are in this view.
- 3. Set the UpNode and BackNode.
+ 3. Set the ReferenceUpNode ReferenceBackNode, and ReferenceCenter.
 */
-void setUpNodeAndBackNode()
+void setReferencePoints()
 {
 	float dx, dy, dz, radiusSquared, test;
 	float4 center;
 	int upId, backId;
-	
-	center = findCenterOfObject();
-	if(RadiusOfLeftAtrium == -1)
-	{
-		printf("\n\n Error: RadiusOfLeftAtrium is used before it is set. Simulation is terminated!");
-		exit(0);
-	}
 	
 	// 1:
 	test = RadiusOfLeftAtrium*RadiusOfLeftAtrium;
@@ -1106,10 +1035,11 @@ void setUpNodeAndBackNode()
 	}
 	
 	// 3:
-	UpNode = upId;
-	BackNode = backId;
+	ReferenceUpNode = upId;
+	ReferenceBackNode = backId;
+	ReferenceCenter = center;
 	
-	printf("\n UpNode and BackNode have been set.");
+	printf("\n ReferenceUpNode and ReferenceBackNode have been set.");
 	drawPicture();
 }
 
@@ -1126,8 +1056,8 @@ void ReferenceView()
 	centerObject();
 		
 	// Rotating until the up Node is on x-y plane above or below the positive x-axis.
-	angle = atan(Node[UpNode].position.z/Node[UpNode].position.x);
-	if(Node[UpNode].position.x < 0.0) angle -= PI;
+	angle = atan(Node[ReferenceUpNode].position.z/Node[ReferenceUpNode].position.x);
+	if(Node[ReferenceUpNode].position.x < 0.0) angle -= PI;
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
 		temp = cos(angle)*Node[i].position.x + sin(angle)*Node[i].position.z;
@@ -1137,7 +1067,7 @@ void ReferenceView()
 	AngleOfSimulation.y += angle;
 	
 	// Rotating until up Node is on the positive y axis.
-	angle = PI/2.0 - atan(Node[UpNode].position.y/Node[UpNode].position.x);
+	angle = PI/2.0 - atan(Node[ReferenceUpNode].position.y/Node[ReferenceUpNode].position.x);
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
 		temp = cos(angle)*Node[i].position.x - sin(angle)*Node[i].position.y;
@@ -1147,8 +1077,8 @@ void ReferenceView()
 	AngleOfSimulation.z += angle;
 	
 	// Rotating until front Node is on the positive z axis.
-	angle = atan(Node[BackNode].position.z/Node[BackNode].position.x) - PI/2.0;
-	if(Node[BackNode].position.x < 0.0) angle -= PI;
+	angle = atan(Node[ReferenceBackNode].position.z/Node[ReferenceBackNode].position.x) - PI/2.0;
+	if(Node[ReferenceBackNode].position.x < 0.0) angle -= PI;
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
 		temp = cos(angle)*Node[i].position.x + sin(angle)*Node[i].position.z;
@@ -1355,13 +1285,13 @@ void drawPicture()
 		glVertex3f(Node[PulsePointNode].position.x, Node[PulsePointNode].position.y, Node[PulsePointNode].position.z);
 		
 		glColor3d(0.2, 0.95, 1.0);
-		glVertex3f(Node[UpNode].position.x, Node[UpNode].position.y, Node[UpNode].position.z);
+		glVertex3f(Node[ReferenceUpNode].position.x, Node[ReferenceUpNode].position.y, Node[ReferenceUpNode].position.z);
 		
 		glColor3d(1.0, 0.45, 0.2);
-		glVertex3f(Node[BackNode].position.x, Node[BackNode].position.y, Node[BackNode].position.z);
+		glVertex3f(Node[ReferenceBackNode].position.x, Node[ReferenceBackNode].position.y, Node[ReferenceBackNode].position.z);
 		
 		glColor3d(1.0, 0.45, 1.0);
-		glVertex3f(Node[ReferenceNode].position.x, Node[ReferenceNode].position.y, Node[ReferenceNode].position.z);
+		glVertex3f(Node[ReferencePointNode].position.x, Node[ReferencePointNode].position.y, Node[ReferencePointNode].position.z);
 		
 		float4 center = findCenterOfObject();
 		glColor3d(0.0, 0.0, 1.0);
@@ -1485,6 +1415,102 @@ void renderSphere(float radius, int slices, int stacks)
         }
         glEnd();
     }
+}
+
+/*
+Spheres use for the body of the LA. Created once and stored so they are much faster.
+*/
+void createSphereVBO(float radius, int slices, int stacks)
+{
+    std::vector<float> vertices;
+    std::vector<unsigned int> indices;
+    
+    // Generate sphere vertices with positions and normals
+	for (int i = 0; i <= stacks; ++i) 
+	{
+		// Calculate the vertical angle phi (0 to PI, from top to bottom of sphere)
+		float phi = PI * i / stacks;
+		float sinPhi = sin(phi);
+		float cosPhi = cos(phi);
+		
+		for (int j = 0; j <= slices; ++j) 
+		{
+			// Calculate the horizontal angle theta (0 to 2PI, around the sphere)
+			float theta = 2.0f * PI * j / slices;
+			float sinTheta = sin(theta);
+			float cosTheta = cos(theta);
+			
+			// Convert spherical to Cartesian coordinates
+			// x = r * sin(phi) * cos(theta)
+			// y = r * cos(phi)          // y is up/down axis (poles of the sphere)
+			// z = r * sin(phi) * sin(theta)
+			float x = radius * sinPhi * cosTheta;
+
+			float y = radius * cosPhi;
+			float z = radius * sinPhi * sinTheta;
+			
+			// For a sphere, normal vectors point outward from center
+			// and are simply the normalized position vector (position/radius)
+			float nx = sinPhi * cosTheta;  // Same as x/radius
+			float ny = cosPhi;             // Same as y/radius
+			float nz = sinPhi * sinTheta;  // Same as z/radius
+			
+			// Store the vertex data in interleaved format:
+			// Each vertex has 6 floats - 3 for position (x,y,z) and 3 for normal (nx,ny,nz)
+			vertices.push_back(x);
+			vertices.push_back(y);
+			vertices.push_back(z);
+			vertices.push_back(nx);
+			vertices.push_back(ny);
+			vertices.push_back(nz);
+		}
+	}
+    
+	// Generate indices for triangle strips
+	// This section creates triangles by connecting the grid of vertices:
+	// - First defines index values that point to positions in the vertex array 
+	// - Creates two triangles for each grid cell (rectangular patch)
+	// - Each triangle is defined by three indices in counter-clockwise order
+	for (int i = 0; i < stacks; ++i) 
+	{
+		for (int j = 0; j < slices; ++j) 
+		{
+			// Calculate indices for the four corners of the current grid cell
+			int first = i * (slices + 1) + j;          // Current vertex
+			int second = first + slices + 1;           // Vertex below current
+			
+			// First triangle: Connect current vertex, vertex below, and vertex to the right
+			indices.push_back(first);
+			indices.push_back(second);
+			indices.push_back(first + 1);
+			
+			// Second triangle: Connect vertex below, vertex below+right, and vertex to the right
+			indices.push_back(second);
+			indices.push_back(second + 1);
+			indices.push_back(first + 1);
+		}
+	}
+
+	// Store the total counts for rendering
+	NumSphereVertices = vertices.size() / 6; // 6 floats per vertex (pos + normal)
+	NumSphereIndices = indices.size();
+
+	// Create and setup OpenGL buffers on the GPU
+	// - Generate unique buffer IDs
+	// - Bind buffers to set them as active
+	// - Copy data from CPU arrays to GPU memory
+	glGenBuffers(1, &SphereVBO);  // Generate Vertex Buffer Object for storing positions and normals
+	glBindBuffer(GL_ARRAY_BUFFER, SphereVBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	// Same process for the index buffer
+	glGenBuffers(1, &SphereIBO);  // Generate Index Buffer Object for storing triangle connections
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereIBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	// Unbind buffers to prevent accidental modification
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 //******************* Callback Functions ***********************************************
@@ -1726,13 +1752,13 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 				int nodeId = findClosestNodeToMouse(mousePos);
 				if(nodeId != -1)
 				{
-					ReferenceNode = nodeId;
-					setUpNodeAndBackNode();
+					ReferencePointNode = nodeId;
+					setReferencePoints();
 				}
 			}
 			else
 			{
-				assignNodes(Node, NumberOfNodes, mousePos, Simulation.mouseMode);
+				assignNodes(mousePos, Simulation.mouseMode);
 			}
 		}
 		else if(button == GLFW_MOUSE_BUTTON_RIGHT) // Right Mouse button down
@@ -2075,34 +2101,6 @@ void createGUI()
 
 //******************* Utility Functions ********************************************
 
-/*
-This funciton finds the average radius of the object by 
-	1. Finding the center of the object.
-	2. Finding the distance from each node to the center, which is the radius of that node.
-	3. Averaging all those radii together to get the average radius of the object.
-	4. Returns 1 on success and 0 on failure
-*/
-double findAverageRadiusOfObject() 
-{
-	double averageRadius;
-	float4 centerOfObject = findCenterOfObject();
-
-	// Calculate the distance from each node to the center
-	float totalRadius = 0.0f;
-	for (int i=0; i < NumberOfNodes; i++)
-	{
-		float dx = Node[i].position.x - centerOfObject.x;
-		float dy = Node[i].position.y - centerOfObject.y;
-		float dz = Node[i].position.z - centerOfObject.z;
-		float distance = sqrtf(dx*dx + dy*dy + dz*dz);
-		totalRadius += distance;
-	}
-
-	averageRadius = totalRadius/NumberOfNodes;
-	printf("The average radius of the object is %f mm\n", averageRadius); // The average radius for RealisticLA is around 25.8 mm
-	return averageRadius;
-}
-
 float4 findCenterOfObject()
 {
 	float4 centerOfObject;
@@ -2228,6 +2226,48 @@ void translateObject(float dx, float dy, float dz)
 }
 
 /*
+ This function:
+ Checks to see if a node is within a hit radius of the mouse.
+*/
+bool isNodeInMouseSphere(int nodeId, float3 mousePos) 
+{
+	float dx, dy,dz, d2, hit2;
+	hit2 = HitMultiplier * HitMultiplier * RadiusOfLeftAtrium * RadiusOfLeftAtrium;
+	dx = Node[nodeId].position.x - mousePos.x;
+	dy = Node[nodeId].position.y - mousePos.y; 
+	dz = Node[nodeId].position.z - mousePos.z; 
+	d2 = dx*dx + dy*dy + dz*dz;
+	if(d2 < hit2) return true;
+	else return false;
+}
+
+/*
+ This function:
+ Returns the closest node to the mouse cursor but it must also be within a hit radius of the mouse.
+*/
+int findClosestNodeToMouse(float3 mousePos)
+{
+	int closestNode = -1;
+	float closestDistSquared = FLOATMAX;
+	float hitRadiusSquared = HitMultiplier * HitMultiplier * RadiusOfLeftAtrium * RadiusOfLeftAtrium;
+
+	for(int i = 0; i < NumberOfNodes; i++)
+	{
+		float dx = Node[i].position.x - mousePos.x;
+		float dy = Node[i].position.y - mousePos.y;
+		float dz = Node[i].position.z - mousePos.z;
+		float distSquared = dx*dx + dy*dy + dz*dz;
+		if(distSquared < hitRadiusSquared && distSquared < closestDistSquared)
+		{
+			closestDistSquared = distSquared;
+			closestNode = i;
+		}
+	}
+	return closestNode;
+}
+
+
+/*
  This function returns a timestamp in M-D-Y-H.M.S format.
  This is use so each file that is created has a unique name. 
  Note: You cannot create more than one file in a second or you will over write the previous file.
@@ -2279,101 +2319,5 @@ void shutdownAndCleanup()
 	//destroy the window and terminate GLFW
 	glfwDestroyWindow(Window);
   	glfwTerminate();
-}
-
-/*
-Spheres use for the body of the LA. Created once and stored so they are much faster.
-*/
-void createSphereVBO(float radius, int slices, int stacks)
-{
-    std::vector<float> vertices;
-    std::vector<unsigned int> indices;
-    
-    // Generate sphere vertices with positions and normals
-	for (int i = 0; i <= stacks; ++i) 
-	{
-		// Calculate the vertical angle phi (0 to PI, from top to bottom of sphere)
-		float phi = PI * i / stacks;
-		float sinPhi = sin(phi);
-		float cosPhi = cos(phi);
-		
-		for (int j = 0; j <= slices; ++j) 
-		{
-			// Calculate the horizontal angle theta (0 to 2PI, around the sphere)
-			float theta = 2.0f * PI * j / slices;
-			float sinTheta = sin(theta);
-			float cosTheta = cos(theta);
-			
-			// Convert spherical to Cartesian coordinates
-			// x = r * sin(phi) * cos(theta)
-			// y = r * cos(phi)          // y is up/down axis (poles of the sphere)
-			// z = r * sin(phi) * sin(theta)
-			float x = radius * sinPhi * cosTheta;
-
-			float y = radius * cosPhi;
-			float z = radius * sinPhi * sinTheta;
-			
-			// For a sphere, normal vectors point outward from center
-			// and are simply the normalized position vector (position/radius)
-			float nx = sinPhi * cosTheta;  // Same as x/radius
-			float ny = cosPhi;             // Same as y/radius
-			float nz = sinPhi * sinTheta;  // Same as z/radius
-			
-			// Store the vertex data in interleaved format:
-			// Each vertex has 6 floats - 3 for position (x,y,z) and 3 for normal (nx,ny,nz)
-			vertices.push_back(x);
-			vertices.push_back(y);
-			vertices.push_back(z);
-			vertices.push_back(nx);
-			vertices.push_back(ny);
-			vertices.push_back(nz);
-		}
-	}
-    
-	// Generate indices for triangle strips
-	// This section creates triangles by connecting the grid of vertices:
-	// - First defines index values that point to positions in the vertex array 
-	// - Creates two triangles for each grid cell (rectangular patch)
-	// - Each triangle is defined by three indices in counter-clockwise order
-	for (int i = 0; i < stacks; ++i) 
-	{
-		for (int j = 0; j < slices; ++j) 
-		{
-			// Calculate indices for the four corners of the current grid cell
-			int first = i * (slices + 1) + j;          // Current vertex
-			int second = first + slices + 1;           // Vertex below current
-			
-			// First triangle: Connect current vertex, vertex below, and vertex to the right
-			indices.push_back(first);
-			indices.push_back(second);
-			indices.push_back(first + 1);
-			
-			// Second triangle: Connect vertex below, vertex below+right, and vertex to the right
-			indices.push_back(second);
-			indices.push_back(second + 1);
-			indices.push_back(first + 1);
-		}
-	}
-
-	// Store the total counts for rendering
-	NumSphereVertices = vertices.size() / 6; // 6 floats per vertex (pos + normal)
-	NumSphereIndices = indices.size();
-
-	// Create and setup OpenGL buffers on the GPU
-	// - Generate unique buffer IDs
-	// - Bind buffers to set them as active
-	// - Copy data from CPU arrays to GPU memory
-	glGenBuffers(1, &SphereVBO);  // Generate Vertex Buffer Object for storing positions and normals
-	glBindBuffer(GL_ARRAY_BUFFER, SphereVBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-	// Same process for the index buffer
-	glGenBuffers(1, &SphereIBO);  // Generate Index Buffer Object for storing triangle connections
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereIBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-
-	// Unbind buffers to prevent accidental modification
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 

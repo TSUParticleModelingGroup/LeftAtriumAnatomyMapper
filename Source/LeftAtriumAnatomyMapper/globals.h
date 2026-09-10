@@ -52,23 +52,27 @@ using namespace std;
 #define MUSCLES_PER_NODE 20
 
 // Node types
-const int NodeTypeStandard = 0;
+const int NodeTypeStandardLA = 0;
 const int NodeTypeBachmannBundle = 1;
 const int NodeTypeAppendage = 2;
 const int NodeTypeScarTissue = 3; // This is not implemented yet but will be used to make scar tissue in the future.
 const int NodeTypePulmonaryVeins = 4;
 const int NodeTypeMitralValve = 5;
+const int NodeTypeBackWall = 6;
+const int NodeTypeExtraTissue = 7;
 
 // Mouse modes, which will use the same int values as the node types for simplicity, but with -1 for off mode.
 const int MouseModeOff = -1;
-const int MouseModeStandard = NodeTypeStandard;
+const int MouseModeStandardLA = NodeTypeStandardLA;
 const int MouseModeBachmannsBundle = NodeTypeBachmannBundle;
 const int MouseModeAppendage = NodeTypeAppendage;
 const int MouseModeScarTissue = NodeTypeScarTissue; // This is not implemented yet but will be used to make scar tissue in the future.
 const int MouseModePulmonaryVeins = NodeTypePulmonaryVeins;
 const int MouseModeMitralValve = NodeTypeMitralValve;
-const int MouseModePulseNode = 100;
-const int MouseModeBackTop = 101;
+const int MouseModeBackWall = NodeTypeBackWall;
+const int MouseModeExtraTissue = NodeTypeExtraTissue;
+const int MouseModePulseNode = 100; //BMW
+const int MouseModeBackTop = 101; //BMW
 
 // Color types
 const float4 ColorStandardLA = {1.0f, 0.0f, 0.0f, 0.0f}; // Red for standard nodes (to reduce contrast)
@@ -77,6 +81,8 @@ const float4 ColorAppendage = {1.0f, 0.8f, 0.3f, 0.0f}; // Orange for left atria
 const float4 ColorScarTissue = {0.6f, 0.6f, 0.6f, 0.0f}; // Gray for scar tissue nodes and muscles by default.
 const float4 ColorPulmonaryVeins = {1.0f, 0.4f, 0.7f, 0.0f}; // Pink for pulmonary veins nodes and muscles by default.
 const float4 ColorMitralValve = {0.5f, 0.0f, 0.5f, 0.0f}; // Purple for mitral valve nodes and muscles by default.
+const float4 ColorBackWall = {0.0f, 1.0f, 0.0f, 0.0f}; // Green for back wall nodes and muscles by default.
+const float4 ColorExtraTissue = {0.6f, 0.6f, 0.6f, 0.0f}; // Gray for extra tissue nodes and muscles by default.
 
 // Structures
 // Everything a node holds.
@@ -211,8 +217,6 @@ double findAverageRadiusOfObject();
 // User Action Functions
 int getTypePriority(int);
 float4 getMuscleColorFromType(int);
-bool setMuscleTypeAndColor(int);
-bool setMuscleTypes();
 void toggleNodeSelector(simulationSwitchesStructure*, int);
 void setMouseMode(simulationSwitchesStructure*, int);
 float4 getColorFromType(int);
@@ -249,6 +253,8 @@ float4 findCenterOfObject();
 void centerObject();
 void rotateObject(float, int, int, int);
 void translateObject(float, float, float);
+void setSingleMuscleTypeAndColor(int); //done
+void setAllMuscleTypesAndColors(); //done
 bool isNodeInMouseSphere(int, float3); //done
 int findClosestNodeToMouse(float3); //done
 std::string getTimeStamp();

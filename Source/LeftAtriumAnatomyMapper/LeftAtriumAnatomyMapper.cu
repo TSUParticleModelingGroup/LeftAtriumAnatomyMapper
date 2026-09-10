@@ -459,12 +459,13 @@ void readNodesAndMusclesFromBinaryFile()
  ../NodesMuscles/bin/<NodesMusclesFileName>_<timestamp>.bin
 
  Binary layout:
- - NumberOfNodes
- - NumberOfMuscles
- - PulsePointNode
- - UpNode
- - BackNode
- - ReferenceNode
+ - NumberOfNodes int
+ - NumberOfMuscles int
+ - PulsePointNode int
+ - ReferenceUpNode int
+ - ReferenceBackNode int
+ - ReferencePointNode int
+ - ReferenceCenter float4
  - per node: type(int), position(float4), muscle[MUSCLES_PER_NODE](int), color(float4)
  - per muscle: type(int), nodeA(int), nodeB(int), naturalLength(float), color(float4)
 */
@@ -474,11 +475,7 @@ void saveBinary()
 	char fileName[512];
 
 	// Ensure muscle types reflect the current node typing before export.
-	if(!setMuscleTypes())
-	{
-		snprintf(BinarySaveStatusMessage, sizeof(BinarySaveStatusMessage), "Binary save failed: Unknown node type in setMuscleTypes().");
-		return;
-	}
+	setAllMuscleTypesAndColors();
 
 	// Build output file path with timestamp suffix to avoid name collisions.
 	std::string timeStamp = getTimeStamp();
@@ -580,11 +577,7 @@ void setup()
 		readMusclesFromRawFile();
 		linkRawNodesToMuscles();
 		setMuscleNaturalLength();
-		if(!setMuscleTypes())
-		{
-			printf("\n The simulation has been terminated g.\n\n");
-			exit(0);
-		}
+		setAllMuscleTypesAndColors();
 	}
 	
 	centerObject();
@@ -786,24 +779,26 @@ double findAverageRadiusOfObject()
 /*
  Returns priority for a node type when resolving mixed-type muscles.
  Returns -1 for unknown types.
+ Put an integer behind each type with smallest number being the most important
+ and largest being the least important. If you need to add a new type just place it in
+ the list and arange the priority.
 */
 int getTypePriority(int nodeType)
 {
-	const int PriorityLA = 1;
-	const int PriorityBB = 2;
-	const int PriorityLAA = 3;
-	const int PriorityXT = 4;
-	const int PriorityPV = 5;
-	const int PriorityMV = 6;
-
-	if(nodeType == NodeTypeStandard) return PriorityLA;
-	if(nodeType == NodeTypeBachmannBundle) return PriorityBB;
-	if(nodeType == NodeTypeAppendage) return PriorityLAA;
-	if(nodeType == NodeTypeScarTissue) return PriorityXT;
-	if(nodeType == NodeTypePulmonaryVeins) return PriorityPV;
-	if(nodeType == NodeTypeMitralValve) return PriorityMV;
-
-	return -1;
+	if(nodeType == NodeTypeStandardLA) return 7;
+	if(nodeType == NodeTypeBachmannBundle) return 1;
+	if(nodeType == NodeTypeAppendage) return 3;
+	if(nodeType == NodeTypeScarTissue) return 6;
+	if(nodeType == NodeTypePulmonaryVeins) return 2;
+	if(nodeType == NodeTypeMitralValve) return 4;
+	if(nodeType == NodeTypeBackWall) return 5;
+	if(nodeType == NodeTypeExtraTissue) return 8;
+	else
+	{
+		printf("\n\n Unknown node type while setting type priority.");
+		printf("\n Simulation has been terminated.");
+		exit(0);
+	}
 }
 
 /*
@@ -811,71 +806,13 @@ int getTypePriority(int nodeType)
 */
 float4 getMuscleColorFromType(int type)
 {
-	if(type == NodeTypeStandard) return ColorStandardLA;
+	if(type == NodeTypeStandardLA) return ColorStandardLA;
 	if(type == NodeTypeBachmannBundle) return ColorBachmannsBundle;
 	if(type == NodeTypeAppendage) return ColorAppendage;
 	if(type == NodeTypeScarTissue) return ColorScarTissue;
 	if(type == NodeTypePulmonaryVeins) return ColorPulmonaryVeins;
 	if(type == NodeTypeMitralValve) return ColorMitralValve;
 	return ColorStandardLA;
-}
-
-/*
- Sets a single muscle type and color based on its endpoint node types.
- Returns false if the muscle references an invalid or unknown node type.
-*/
-bool setMuscleTypeAndColor(int muscleId)
-{
-	if(muscleId < 0 || muscleId >= NumberOfMuscles)
-	{
-		return false;
-	}
-
-	int a = Muscle[muscleId].nodeA;
-	int b = Muscle[muscleId].nodeB;
-
-	if(a < 0 || b < 0 || a >= NumberOfNodes || b >= NumberOfNodes) //check if connecting nodes are valid
-	{
-		return false; //if invalid return false
-	}
-
-	int typeA = Node[a].type;
-	int typeB = Node[b].type;
-	int priorityA = getTypePriority(typeA);
-	int priorityB = getTypePriority(typeB);
-
-	if(priorityA < 0 || priorityB < 0)
-	{
-		printf("\n\n Unknown node type found while setting muscle %d (nodeA type=%d, nodeB type=%d\n).", muscleId, typeA, typeB);
-		return false;
-	}
-
-	//figures out what type the muscle should be based on the types of its endpoint nodes and the priority of those types.
-	// If the node types are the same, the muscle gets that type. If they differ, the muscle gets the type of the higher priority node.
-	int resolvedType = (typeA == typeB) ? typeA : ((priorityA >= priorityB) ? typeA : typeB);
-	Muscle[muscleId].type = resolvedType;
-	Muscle[muscleId].color = getColorFromType(resolvedType);
-
-	return true;
-}
-
-/*
- This function sets each muscle type from its two endpoint node types.
- Rules:
- 1. If nodeA and nodeB have the same type, muscle gets that type.
- 2. If they differ, choose by explicit priority (higher wins).
-*/
-bool setMuscleTypes()
-{
-	for(int i = 0; i < NumberOfMuscles; i++)
-	{
-		if(!setMuscleTypeAndColor(i))
-		{
-			return false;
-		}
-	}
-
-	return true;
 }
 
 // This enables or disables the spherical node selector and sets the isInMouseFunctionMode flag.
@@ -911,7 +848,7 @@ float4 getColorFromType(int type)
 {
 	switch (type)
 	{
-		case NodeTypeStandard:		return ColorStandardLA;
+		case NodeTypeStandardLA:	return ColorStandardLA;
 		case NodeTypeBachmannBundle:	return ColorBachmannsBundle;
 		case NodeTypeAppendage:		return ColorAppendage;
 		case NodeTypeScarTissue:	return ColorScarTissue;
@@ -945,11 +882,11 @@ void clearAllTypes()
 {
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
-		Node[i].type = NodeTypeStandard;
-		Node[i].color = getColorFromType(NodeTypeStandard);
+		Node[i].type = NodeTypeStandardLA;
+		Node[i].color = getColorFromType(NodeTypeStandardLA);
 	}
 	// Recompute muscle types/colors based on node endpoints and refresh view.
-	setMuscleTypes();
+	setAllMuscleTypesAndColors();
 	drawPicture();
 }
 
@@ -964,7 +901,7 @@ void resetToOriginalOrClear()
 		readNodesAndMusclesFromBinaryFile();
 		linkRawNodesToMuscles();
 		setMuscleNaturalLength();
-		setMuscleTypes();
+		setAllMuscleTypesAndColors();
 		drawPicture();
 		return;
 	}
@@ -1006,7 +943,7 @@ void setReferencePoints()
 	}
 	if(upId == -1)
 	{
-		printf("\n\n Error: Could not find UpNode. Simulation is terminated!");
+		printf("\n\n Error: Could not find ReferenceUpNode. Simulation is terminated!");
 		exit(0);
 	}
 	
@@ -1030,7 +967,7 @@ void setReferencePoints()
 	}
 	if(backId == -1)
 	{
-		printf("\n\n Error: Could not find BackNode. Simulation is terminated");
+		printf("\n\n Error: Could not find ReferenceBackNode. Simulation is terminated");
 		exit(0);
 	}
 	
@@ -1554,7 +1491,7 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 			Simulation.guiCollapsed = true;
 			if(Simulation.mouseMode == MouseModeOff)
 			{
-				Simulation.mouseMode = MouseModeStandard;
+				Simulation.mouseMode = MouseModeStandardLA;
 			}
 			setMouseMode(&Simulation, Simulation.mouseMode);
 			glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -1645,7 +1582,7 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 
 		case GLFW_KEY_F4: // Quick select: Standard node section
 			Simulation.guiCollapsed = true;// Rotate clockwise on the y-axis
-			setMouseMode(&Simulation, MouseModeStandard);
+			setMouseMode(&Simulation, MouseModeStandardLA);
 			drawPicture();
 			break;
 
@@ -1846,7 +1783,7 @@ void createGUI()
 	else
 	{
 		ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "Mouse Mode");
-		if (Simulation.mouseMode == MouseModeStandard) ImGui::TextUnformatted("Section: Standard");
+		if (Simulation.mouseMode == MouseModeStandardLA) ImGui::TextUnformatted("Section: Standard");
 		else if (Simulation.mouseMode == MouseModeBachmannsBundle) ImGui::TextUnformatted("Section: Bachmann's Bundle");
 		else if (Simulation.mouseMode == MouseModeAppendage) ImGui::TextUnformatted("Section: Appendage");
 		else if (Simulation.mouseMode == MouseModeScarTissue) ImGui::TextUnformatted("Section: Scar Tissue");
@@ -2006,7 +1943,7 @@ void createGUI()
 
 		if (ImGui::Button("Set Standard Node")) 
 		{
-			setMouseMode(&Simulation, MouseModeStandard); 
+			setMouseMode(&Simulation, MouseModeStandardLA); 
 		}
 		// TODO: Make helper functions for tooltips
 		ShowTooltip("(F4)\nSet selected nodes to Standard");
@@ -2223,6 +2160,47 @@ void translateObject(float dx, float dy, float dz)
 	CenterOfSimulation.x += dx;
 	CenterOfSimulation.y += dy;
 	CenterOfSimulation.z += dz;
+}
+
+/*
+ This function:
+ Sets a single muscle type and color based on its endpoint node types.
+*/
+void setSingleMuscleTypeAndColor(int muscleId)
+{
+	int a = Muscle[muscleId].nodeA;
+	int b = Muscle[muscleId].nodeB;
+
+	int typeA = Node[a].type;
+	int typeB = Node[b].type;
+	if(typeA == typeB) Muscle[muscleId].type = typeA;
+	else
+	{
+		int priorityA = getTypePriority(typeA);
+		int priorityB = getTypePriority(typeB);
+		if(priorityA < priorityB) 
+		{
+			Muscle[muscleId].type = typeA;
+			Muscle[muscleId].color = getColorFromType(typeA);
+		}
+		else 
+		{
+			Muscle[muscleId].type = typeB;
+			Muscle[muscleId].color = getColorFromType(typeB);
+		}
+	}
+}
+
+/*
+ This function: 
+ Sets all muscle types and colors.
+*/
+void setAllMuscleTypesAndColors()
+{
+	for(int i = 0; i < NumberOfMuscles; i++)
+	{
+		setSingleMuscleTypeAndColor(i);
+	}
 }
 
 /*

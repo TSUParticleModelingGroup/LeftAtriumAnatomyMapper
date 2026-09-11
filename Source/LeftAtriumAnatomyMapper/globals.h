@@ -84,7 +84,7 @@ const float4 ColorMitralValve = {0.5f, 0.0f, 0.5f, 0.0f}; // Purple for mitral v
 const float4 ColorBackWall = {0.0f, 1.0f, 0.0f, 0.0f}; // Green for back wall nodes and muscles by default.
 const float4 ColorExtraTissue = {0.6f, 0.6f, 0.6f, 0.0f}; // Gray for extra tissue nodes and muscles by default.
 
-// Structures
+// ******************** Structures ************************************
 // Everything a node holds.
 typedef struct 
 {
@@ -167,7 +167,7 @@ double RadiusOfLeftAtrium = -1.0; // Set to -1.0 to flag it if it is used before
 // TODO: Convert these to a float3 or double3
 double MouseX, MouseY, MouseZ;
 int MouseWheelPos;
-float HitMultiplier; // Adjusts how big of a region the mouse covers when you are selecting with it.
+float MouseSelectionRadiusMultiplier; // Adjusts how big of a region the mouse covers when you are selecting with it.
 int ScrollSpeedToggle; // Sets slow or fast scroll speed.
 double ScrollSpeed; // How fast your scroll moves.
 
@@ -208,22 +208,16 @@ void saveBinary();
 
 // Setup Functions
 void setup();
-void checkNodes();
-void linkRawNodesToMuscles();
-void setMuscleNaturalLength();
-void setRemainingParameters();  // BMW Look into if these are needed.
-double findAverageRadiusOfObject();
+void checkNodes(); //done
+void linkRawNodesToMuscles(); //done
+double findAverageRadiusOfObject(); //done
+void setMuscleNaturalLength(); //done
 
 // User Action Functions
-int getTypePriority(int);
-float4 getMuscleColorFromType(int);
+void setReferencePoints();//done
 void toggleNodeSelector(simulationSwitchesStructure*, int);
 void setMouseMode(simulationSwitchesStructure*, int);
-float4 getColorFromType(int);
 void assignNodes(float3, int);
-void clearAllTypes();
-void resetToOriginalOrClear();
-void setReferencePoints();
 
 // View Functions
 void ReferenceView();
@@ -245,20 +239,22 @@ void myMouseCallback(GLFWwindow*, int, int, int);
 void scrollWheelCallback(GLFWwindow*, double, double);
 
 // Graphical User Interface Functions
-static inline void ShowTooltip(const char* text);
+static inline void ShowTooltip(const char* text); // done
 void createGUI();
 
 // Utility Functions
-float4 findCenterOfObject();
-void centerObject();
-void rotateObject(float, int, int, int);
-void translateObject(float, float, float);
+float4 findCenterOfObject(); //done
+void centerObject();//done
+void rotateObject(float, int, int, int);//done
+void translateObject(float, float, float);//done
 void setSingleMuscleTypeAndColor(int); //done
 void setAllMuscleTypesAndColors(); //done
 bool isNodeInMouseSphere(int, float3); //done
 int findClosestNodeToMouse(float3); //done
-std::string getTimeStamp();
-void shutdownAndCleanup();
+int getTypePriority(int); //done
+float4 getColorFromType(int); //done
+std::string getTimeStamp(); //done
+void shutdownAndCleanup(); //done
 
 
 

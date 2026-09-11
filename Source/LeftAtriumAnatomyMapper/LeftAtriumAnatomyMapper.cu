@@ -539,21 +539,8 @@ void saveBinary()
 	// Close file handle before reporting success.
 	fclose(binaryFile);
 	printf("\n Binary file saved: %s\n", fileName);
-	const char* statusPrefix = "Binary saved: ";
-	size_t prefixLen = strlen(statusPrefix);
-	size_t available = (sizeof(BinarySaveStatusMessage) > prefixLen + 1)
-		? (sizeof(BinarySaveStatusMessage) - prefixLen - 1)
-		: 0;
-	memcpy(BinarySaveStatusMessage, statusPrefix, prefixLen);
-	if(available > 0)
-	{
-		strncpy(BinarySaveStatusMessage + prefixLen, fileName, available);
-		BinarySaveStatusMessage[prefixLen + available] = '\0';
-	}
-	else
-	{
-		BinarySaveStatusMessage[sizeof(BinarySaveStatusMessage) - 1] = '\0';
-	}
+	
+	strcpy(BinarySaveStatusMessage, "Binary saved");
 }
 
 //******************* Setup Functions **********************************************
@@ -582,19 +569,42 @@ void setup()
 	
 	centerObject();
 	RadiusOfLeftAtrium = findAverageRadiusOfObject();
-	setRemainingParameters();
+	
+	CenterOfSimulation.x = 0.0;
+	CenterOfSimulation.y = 0.0;
+	CenterOfSimulation.z = 0.0;
+	CenterOfSimulation.w = 0.0;
+		
+	AngleOfSimulation.x = 0.0;
+	AngleOfSimulation.y = 1.0;
+	AngleOfSimulation.z = 0.0;
+	AngleOfSimulation.w = 0.0;
+
+	Simulation.DrawNodesFlag = 0;
+	Simulation.DrawFrontHalfFlag = 0;
+	Simulation.isInMouseFunctionMode = false;
+	Simulation.mouseMode = MouseModeOff;
+	Simulation.guiCollapsed = false;
+
+	MouseSelectionRadiusMultiplier = 0.1;
+	MouseZ = RadiusOfLeftAtrium;
+	MouseX = 0.0;
+	MouseY = 0.0;
+	ScrollSpeedToggle = 1;
+	ScrollSpeed = 0.5;
+	MouseWheelPos = 0;
 	
 	printf("\n\n Have a good simulation.\n\n");
 }
 
-/* This function checks to see if two nodes are too close relative to all the other nodes 
-   in the simulations. 
+/* 
+ This function:
+ Checks to see if two nodes are too close together relative to all the other node seperations. 
    1: This for loop finds all the nearest neighbor distances and then it calculates the average of this value. 
       This get a sense of how close nodes are in general. If you have more nodes they are going to be 
       closer together, this number just gets you a scale to compare to.
    2: This for loop checks to see if two nodes are closer than an cutoffDivider times smaller than the 
-
-      average minimal distance. If it is, the nodes are printed out with their separation and a flag is set.
+      average minimal seperation distance. If it is, the nodes in question are printed out with their separation and a flag is set.
       Adjust the cutoffDivider for tighter and looser tolerances.
    3: If the flag is set, the simulation is terminated so the user can correct the node file that contains the faulty nodes.
 */
@@ -658,7 +668,7 @@ void checkNodes()
 	if(flag == true)
 	{
 		printf("\n\n The average nearest separation for all the nodes is %f.", averageMinSeparation);
-		printf("\n The cutoff separation was %f.", cutoff);
+		printf("\n The cutoff separation is %f.", cutoff);
 		printf("\n The simulation has been terminated.\n\n");
 		exit(0);
 	}
@@ -667,7 +677,8 @@ void checkNodes()
 }
 
 /*
- This function loads each node structure with all the muscles it is connected to.
+ This function: 
+ Loads each node structure with all the muscles it is connected to.
 */
 void linkRawNodesToMuscles()
 {	
@@ -697,61 +708,12 @@ void linkRawNodesToMuscles()
 }
 
 /*
- These function sets the natural length of the muscles to be used down stream in the model simulation. 
-*/
-void setMuscleNaturalLength()
-{	
-	double dx, dy, dz;
-	for(int i = 0; i < NumberOfMuscles; i++)
-	{	
-		dx = Node[Muscle[i].nodeA].position.x - Node[Muscle[i].nodeB].position.x;
-		dy = Node[Muscle[i].nodeA].position.y - Node[Muscle[i].nodeB].position.y;
-		dz = Node[Muscle[i].nodeA].position.z - Node[Muscle[i].nodeB].position.z;
-		Muscle[i].naturalLength = sqrt(dx*dx + dy*dy + dz*dz);
-		
-	}
-		
-	printf("\n Muscle natural lengths have been set.\n");
-}
-
-/*
- This function sets any remaining parameters that are not part of the nodes or muscles structures.
- It also sets or initializes the run parameters for this run.
-*/
-void setRemainingParameters()
-{	
-	CenterOfSimulation.x = 0.0;
-	CenterOfSimulation.y = 0.0;
-	CenterOfSimulation.z = 0.0;
-	CenterOfSimulation.w = 0.0;
-		
-	AngleOfSimulation.x = 0.0;
-	AngleOfSimulation.y = 1.0;
-	AngleOfSimulation.z = 0.0;
-	AngleOfSimulation.w = 0.0;
-
-	Simulation.DrawNodesFlag = 0;
-	Simulation.DrawFrontHalfFlag = 0;
-	Simulation.isInMouseFunctionMode = false;
-	Simulation.mouseMode = MouseModeOff;
-	Simulation.guiCollapsed = false;
-
-	//TODO: It would be nice to rename this variable (HitMultipler) to something like MouseSelectionSensitivity in the future for clarity.	
-	HitMultiplier = 0.1;
-	MouseZ = RadiusOfLeftAtrium;
-	MouseX = 0.0;
-	MouseY = 0.0;
-	ScrollSpeedToggle = 1;
-	ScrollSpeed = 0.5;
-	MouseWheelPos = 0;
-}
-
-/*
-This funciton finds the average radius of the object by 
-	1. Finding the center of the object.
-	2. Finding the distance from each node to the center, which is the radius of that node.
-	3. Averaging all those radii together to get the average radius of the object.
-	4. Returns 1 on success and 0 on failure
+ This funciton: 
+ Finds the average radius of the object by: 
+ 1. Finding the center of the object.
+ 2. Finding the distance from each node to the center, which is the radius of that node.
+ 3. Averages all those radii together to get the average radius of the object.
+ 4. Returns that number.
 */
 double findAverageRadiusOfObject() 
 {
@@ -774,46 +736,98 @@ double findAverageRadiusOfObject()
 	return averageRadius;
 }
 
+/*
+ These function: 
+ Sets the natural length of the muscles to be used down stream in the model simulation. 
+*/
+void setMuscleNaturalLength()
+{	
+	double dx, dy, dz;
+	for(int i = 0; i < NumberOfMuscles; i++)
+	{	
+		dx = Node[Muscle[i].nodeA].position.x - Node[Muscle[i].nodeB].position.x;
+		dy = Node[Muscle[i].nodeA].position.y - Node[Muscle[i].nodeB].position.y;
+		dz = Node[Muscle[i].nodeA].position.z - Node[Muscle[i].nodeB].position.z;
+		Muscle[i].naturalLength = sqrt(dx*dx + dy*dy + dz*dz);
+		
+	}
+		
+	printf("\n Muscle natural lengths have been set.\n");
+}
+
 //******************* User Action Functions ********************************************
 
 /*
- Returns priority for a node type when resolving mixed-type muscles.
- Returns -1 for unknown types.
- Put an integer behind each type with smallest number being the most important
- and largest being the least important. If you need to add a new type just place it in
- the list and arange the priority.
+ This function will:
+ 1. Find the node that is closest to being directly above the center of the object (the UpNode).
+ 2. Find the node that is closest to the user from the center of the object (the BackNode).
+    It is called the BackNode because in the reference view which all views are related to you are looking at
+    the bacl of the LA. The UpNode and BackNodes should be set when you are in this view.
+
+ 3. Set the ReferenceUpNode ReferenceBackNode, and ReferenceCenter.
 */
-int getTypePriority(int nodeType)
+void setReferencePoints()
 {
-	if(nodeType == NodeTypeStandardLA) return 7;
-	if(nodeType == NodeTypeBachmannBundle) return 1;
-	if(nodeType == NodeTypeAppendage) return 3;
-	if(nodeType == NodeTypeScarTissue) return 6;
-	if(nodeType == NodeTypePulmonaryVeins) return 2;
-	if(nodeType == NodeTypeMitralValve) return 4;
-	if(nodeType == NodeTypeBackWall) return 5;
-	if(nodeType == NodeTypeExtraTissue) return 8;
-	else
+	float dx, dy, dz, radiusSquared, minRadius;
+	float4 center;
+	int upId, backId;
+	
+	// 1:
+	minRadius = FLOATMAX;
+	upId = -1;
+	for(int i = 0; i < NumberOfNodes; i++)
 	{
-		printf("\n\n Unknown node type while setting type priority.");
-		printf("\n Simulation has been terminated.");
+		if(center.y < Node[i].position.y)
+		{
+			dx = center.x - Node[i].position.x;
+			dz = center.z - Node[i].position.z;
+			radiusSquared = dx*dx + dz*dz;
+			if(radiusSquared < minRadius) 
+			{
+				upId = i;
+				minRadius = radiusSquared;
+			}
+		}
+	}
+	if(upId == -1)
+	{
+		printf("\n\n Error: Could not find ReferenceUpNode. Simulation is terminated!");
 		exit(0);
 	}
+	
+	// 2:
+	backId = -1;
+	minRadius = FLOATMAX;
+	for(int i = 0; i < NumberOfNodes; i++)
+	{
+		if(center.z < Node[i].position.z)
+		{
+			radiusSquared = Node[i].position.x*Node[i].position.x + Node[i].position.y*Node[i].position.y;
+			dx = center.x - Node[i].position.x;
+			dy = center.y - Node[i].position.y;
+			radiusSquared = dx*dx + dy*dy;
+			if(radiusSquared < minRadius) 
+			{
+				backId = i;
+				minRadius = radiusSquared;
+			}
+		}
+	}
+	if(backId == -1)
+	{
+		printf("\n\n Error: Could not find ReferenceBackNode. Simulation is terminated");
+		exit(0);
+	}
+	
+	// 3:
+	ReferenceUpNode = upId;
+	ReferenceBackNode = backId;
+	ReferenceCenter = center;
+	
+	printf("\n ReferenceUpNode, ReferenceBackNode, and  ReferenceCenter have been set.");
+	drawPicture();
 }
 
-/*
- Returns the display color for a muscle type.
-*/
-float4 getMuscleColorFromType(int type)
-{
-	if(type == NodeTypeStandardLA) return ColorStandardLA;
-	if(type == NodeTypeBachmannBundle) return ColorBachmannsBundle;
-	if(type == NodeTypeAppendage) return ColorAppendage;
-	if(type == NodeTypeScarTissue) return ColorScarTissue;
-	if(type == NodeTypePulmonaryVeins) return ColorPulmonaryVeins;
-	if(type == NodeTypeMitralValve) return ColorMitralValve;
-	return ColorStandardLA;
-}
 
 // This enables or disables the spherical node selector and sets the isInMouseFunctionMode flag.
 void toggleNodeSelector(simulationSwitchesStructure* sim, int mode) 
@@ -842,22 +856,6 @@ void setMouseMode(simulationSwitchesStructure* sim, int mode)
 	// drawPicture();
 }
 
-
-// Returns the default color for invalid types
-float4 getColorFromType(int type)
-{
-	switch (type)
-	{
-		case NodeTypeStandardLA:	return ColorStandardLA;
-		case NodeTypeBachmannBundle:	return ColorBachmannsBundle;
-		case NodeTypeAppendage:		return ColorAppendage;
-		case NodeTypeScarTissue:	return ColorScarTissue;
-		case NodeTypePulmonaryVeins:	return ColorPulmonaryVeins;
-		case NodeTypeMitralValve:	return ColorMitralValve;
-		default:			return ColorStandardLA;
-	}
-}
-
 void assignNodes(float3 mousePos, int nodeType)
 {
 	for(int i = 0; i < NumberOfNodes; i++)
@@ -877,113 +875,11 @@ void assignNodes(float3 mousePos, int nodeType)
 	}
 }
 
-// Clears all node types to the default (STANDARD) and updates muscles/colors.
-void clearAllTypes()
-{
-	for(int i = 0; i < NumberOfNodes; i++)
-	{
-		Node[i].type = NodeTypeStandardLA;
-		Node[i].color = getColorFromType(NodeTypeStandardLA);
-	}
-	// Recompute muscle types/colors based on node endpoints and refresh view.
-	setAllMuscleTypesAndColors();
-	drawPicture();
-}
-
-// Resets nodes/muscles to original file state if a binary was loaded, otherwise behaves like clearAllTypes().
-void resetToOriginalOrClear()
-{
-	// If the file has a .bin extension, re-read the binary file to restore original state.
-	char *extension = strrchr(NodesMusclesFileName, '.');
-	if(extension != NULL && strcmp(extension, ".bin") == 0)
-	{
-		// Re-read binary and reinitialize structures from disk.
-		readNodesAndMusclesFromBinaryFile();
-		linkRawNodesToMuscles();
-		setMuscleNaturalLength();
-		setAllMuscleTypesAndColors();
-		drawPicture();
-		return;
-	}
-
-	// Not a binary input - behave like clear all.
-	clearAllTypes();
-}
-
-/*
- This function will:
- 1. Find the node that is closest to being directly above the center of the object (the UpNode).
- 2. Find the node that is closest to the user from the center of the object (the BackNode).
-    It is called the BackNode because in the reference view which all views are related to you are looking at
-    the bacl of the LA. The UpNode and BackNodes should be set when you are in this view.
- 3. Set the ReferenceUpNode ReferenceBackNode, and ReferenceCenter.
-*/
-void setReferencePoints()
-{
-	float dx, dy, dz, radiusSquared, test;
-	float4 center;
-	int upId, backId;
-	
-	// 1:
-	test = RadiusOfLeftAtrium*RadiusOfLeftAtrium;
-	upId = -1;
-	for(int i = 0; i < NumberOfNodes; i++)
-	{
-		if(center.y < Node[i].position.y)
-		{
-			dx = center.x - Node[i].position.x;
-			dz = center.z - Node[i].position.z;
-			radiusSquared = dx*dx + dz*dz;
-			if(radiusSquared < test) 
-			{
-				upId = i;
-				test = radiusSquared;
-			}
-		}
-	}
-	if(upId == -1)
-	{
-		printf("\n\n Error: Could not find ReferenceUpNode. Simulation is terminated!");
-		exit(0);
-	}
-	
-	// 2:
-	backId = -1;
-	test = RadiusOfLeftAtrium*RadiusOfLeftAtrium;
-	for(int i = 0; i < NumberOfNodes; i++)
-	{
-		if(center.z < Node[i].position.z)
-		{
-			radiusSquared = Node[i].position.x*Node[i].position.x + Node[i].position.y*Node[i].position.y;
-			dx = center.x - Node[i].position.x;
-			dy = center.y - Node[i].position.y;
-			radiusSquared = dx*dx + dy*dy;
-			if(radiusSquared < test) 
-			{
-				backId = i;
-				test = radiusSquared;
-			}
-		}
-	}
-	if(backId == -1)
-	{
-		printf("\n\n Error: Could not find ReferenceBackNode. Simulation is terminated");
-		exit(0);
-	}
-	
-	// 3:
-	ReferenceUpNode = upId;
-	ReferenceBackNode = backId;
-	ReferenceCenter = center;
-	
-	printf("\n ReferenceUpNode and ReferenceBackNode have been set.");
-	drawPicture();
-}
-
 //******************* View Functions ***********************************************
 
 /*
- This function puts the viewer in the reference view. The reference view is looking straight at the four
+ This function: 
+ Puts the viewer in the reference view. The reference view is looking straight at the four
  pulmonary veins with a vein in each of the four quadrants of the x-y plane as symmetric as you can make 
  it with the mitral valve down. We base all the other views off of this view.
 */
@@ -1026,7 +922,6 @@ void ReferenceView()
 }
 
 /*
-
  This function puts the LA in the PA view.
  The heart does not set in the chest at a straight on angle. Hence we need to adjust our 
  reference view to what is actually seen in a back view looking through the chest.
@@ -1280,7 +1175,7 @@ void drawPicture()
 		glColor3d(1.0,1.0,1.0);
 		glPushMatrix();
 		glTranslatef(MouseX, MouseY, MouseZ);	
-		renderSphere(HitMultiplier*RadiusOfLeftAtrium,20,20);
+		renderSphere(MouseSelectionRadiusMultiplier*RadiusOfLeftAtrium,20,20);
 		glPopMatrix();
 	}
 }
@@ -1540,84 +1435,21 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 	// Check for specific key presses
 	switch (key)
 	{
-		// ALT + q to turn mouse functions off
-		case GLFW_KEY_Q:
-			if (mods & GLFW_MOD_ALT)
-			{
-				setMouseMode(&Simulation, MouseModeOff);
-				Simulation.guiCollapsed = false;
-			}
-			break;
 		case GLFW_KEY_ESCAPE: // Escape key to exit
 			Run = 0;
 			break;
 
-		case GLFW_KEY_S: // Ctrl + Shift + S to save binary
-			if ((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT))
-			{
-				saveBinary();
-			}
-			break;
-
-		case GLFW_KEY_F2: // Toggle front-half rendering
-			Simulation.DrawFrontHalfFlag = (Simulation.DrawFrontHalfFlag == 0) ? 1 : 0;
-			drawPicture();
-			break;
-
-		case GLFW_KEY_F3: // Cycle node rendering: off -> half -> full -> off
-			if(Simulation.DrawNodesFlag == 0)
-			{
-				Simulation.DrawNodesFlag = 1;
-			}
-			else if(Simulation.DrawNodesFlag == 1)
-			{
-				Simulation.DrawNodesFlag = 2;
-			}
-			else
-			{
-				Simulation.DrawNodesFlag = 0;
-			}
-			drawPicture();
-			break;
-
-		case GLFW_KEY_F4: // Quick select: Standard node section
-			Simulation.guiCollapsed = true;// Rotate clockwise on the y-axis
-			setMouseMode(&Simulation, MouseModeStandardLA);
-			drawPicture();
-			break;
-
-		case GLFW_KEY_F5: // Quick select: Bachmann's Bundle section
-			Simulation.guiCollapsed = true;
-			setMouseMode(&Simulation, MouseModeBachmannsBundle);
-			drawPicture();
-			break;
-
-		case GLFW_KEY_F6: // Quick select: Appendage section
-			Simulation.guiCollapsed = true;
-			setMouseMode(&Simulation, MouseModeAppendage);
-			drawPicture();
-			break;
-
-		case GLFW_KEY_F7: // Quick select: Scar tissue section
-			Simulation.guiCollapsed = true;
-			setMouseMode(&Simulation, MouseModeScarTissue);
-			drawPicture();
-			break;
-
 		case GLFW_KEY_KP_SUBTRACT: // Decrease selector size
-		case GLFW_KEY_MINUS:
-			HitMultiplier -= 0.01f;
-			if(HitMultiplier < 0.01f) HitMultiplier = 0.01f;
+			MouseSelectionRadiusMultiplier -= 0.01f;
+			if(MouseSelectionRadiusMultiplier < 0.01f) MouseSelectionRadiusMultiplier = 0.01f;
 			drawPicture();
 			break;
 
 		case GLFW_KEY_KP_ADD: // Increase selector size
-		case GLFW_KEY_EQUAL:
-			HitMultiplier += 0.025f;
-			if(HitMultiplier > 0.5f) HitMultiplier = 0.5f;
+			MouseSelectionRadiusMultiplier += 0.025f;
+			if(MouseSelectionRadiusMultiplier > 0.5f) MouseSelectionRadiusMultiplier = 0.5f;
 			drawPicture();
 			break;
-
 		default: // For any other key, do nothing
 			break;
 
@@ -1672,10 +1504,10 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 	
 	if(action == GLFW_PRESS)
 	{
+		float3 mousePos = {(float)MouseX, (float)MouseY, (float)MouseZ};
 		if(button == GLFW_MOUSE_BUTTON_LEFT)
 		{
 			if(Simulation.mouseMode == MouseModeOff) return; // If mouse mode is off, do nothing on left click	
-			float3 mousePos = {(float)MouseX, (float)MouseY, (float)MouseZ};
 			if(Simulation.mouseMode == MouseModePulseNode)
 			{
 				int nodeId = findClosestNodeToMouse(mousePos);
@@ -1700,7 +1532,7 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 		}
 		else if(button == GLFW_MOUSE_BUTTON_RIGHT) // Right Mouse button down
 		{
-			
+			assignNodes(mousePos, NodeTypeStandardLA);
 		}
 		else if(button == GLFW_MOUSE_BUTTON_MIDDLE)
 		{
@@ -1729,13 +1561,13 @@ void scrollWheelCallback(GLFWwindow* window, double xoffset, double yoffset)
 	{
 		if(yoffset > 0)
 		{
-			HitMultiplier += 0.025f;
-			if(HitMultiplier > 0.5f) HitMultiplier = 0.5f;
+			MouseSelectionRadiusMultiplier += 0.025f;
+			if(MouseSelectionRadiusMultiplier > 0.5f) MouseSelectionRadiusMultiplier = 0.5f;
 		}
 		else if(yoffset < 0)
 		{
-			HitMultiplier -= 0.01f;
-			if(HitMultiplier < 0.01f) HitMultiplier = 0.01f;
+			MouseSelectionRadiusMultiplier -= 0.01f;
+			if(MouseSelectionRadiusMultiplier < 0.01f) MouseSelectionRadiusMultiplier = 0.01f;
 		}
 	}
 	else
@@ -1755,6 +1587,11 @@ void scrollWheelCallback(GLFWwindow* window, double xoffset, double yoffset)
 
 //******************* Graphical User Interface Functions ***********************************************
 
+/*
+ This function:
+ Adds a comment below whatever button it is placed below. The format is below.
+ ShowTooltip("Bla Bla");
+*/
 static inline void ShowTooltip(const char* text)
 {
 	if (ImGui::IsItemHovered())
@@ -1767,38 +1604,39 @@ static inline void ShowTooltip(const char* text)
 
 void createGUI()
 {
-
 	// Get actual viewport size -- this is the size of the window, not the size of the the openGL viewport
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 
 	//status panel: always visible so the user knows whether simulation is in GUI mode or mouse mode.
 	ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + 10, viewport->WorkPos.y + 10), ImGuiCond_Always, ImVec2(0.0f, 0.0f));
 	ImGuiWindowFlags status_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings;
+	
+	// Sub Gui window (Top left)
 	ImGui::Begin("Interaction Mode", NULL, status_flags);
-	if (!Simulation.isInMouseFunctionMode)
-	{
-		ImGui::TextColored(ImVec4(0.2f, 0.9f, 0.2f, 1.0f), "GUI Mode");
-		ImGui::TextUnformatted("Mouse editing disabled");
-	}
-	else
-	{
-		ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "Mouse Mode");
-		if (Simulation.mouseMode == MouseModeStandardLA) ImGui::TextUnformatted("Section: Standard");
-		else if (Simulation.mouseMode == MouseModeBachmannsBundle) ImGui::TextUnformatted("Section: Bachmann's Bundle");
-		else if (Simulation.mouseMode == MouseModeAppendage) ImGui::TextUnformatted("Section: Appendage");
-		else if (Simulation.mouseMode == MouseModeScarTissue) ImGui::TextUnformatted("Section: Scar Tissue");
-		else if (Simulation.mouseMode == MouseModePulmonaryVeins) ImGui::TextUnformatted("Section: Pulmonary Veins");
-		else if (Simulation.mouseMode == MouseModeMitralValve) ImGui::TextUnformatted("Section: Mitral Valve");
-		else if (Simulation.mouseMode == MouseModePulseNode) ImGui::TextUnformatted("Section: Pulse Node");
-		else if (Simulation.mouseMode == MouseModeBackTop) ImGui::TextUnformatted("Section: Back/Top Nodes");
-		else ImGui::TextUnformatted("Section: None");
-	}
-	ImGui::TextUnformatted("Tab: Toggle GUI/Mouse mode");
-	if (BinarySaveStatusMessage[0] != '\0')
-	{
-		ImGui::Separator();
-		ImGui::TextWrapped("%s", BinarySaveStatusMessage);
-	}
+		if (!Simulation.isInMouseFunctionMode)
+		{
+			ImGui::TextColored(ImVec4(0.2f, 0.9f, 0.2f, 1.0f), "GUI Mode");
+			ImGui::TextUnformatted("Mouse editing disabled");
+		}
+		else
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "Mouse Mode");
+			     if (Simulation.mouseMode == MouseModeStandardLA) ImGui::TextUnformatted("Section: Standard");
+			else if (Simulation.mouseMode == MouseModeBachmannsBundle) ImGui::TextUnformatted("Section: Bachmann's Bundle");
+			else if (Simulation.mouseMode == MouseModeAppendage) ImGui::TextUnformatted("Section: Appendage");
+			else if (Simulation.mouseMode == MouseModeScarTissue) ImGui::TextUnformatted("Section: Scar Tissue");
+			else if (Simulation.mouseMode == MouseModePulmonaryVeins) ImGui::TextUnformatted("Section: Pulmonary Veins");
+			else if (Simulation.mouseMode == MouseModeMitralValve) ImGui::TextUnformatted("Section: Mitral Valve");
+			else if (Simulation.mouseMode == MouseModePulseNode) ImGui::TextUnformatted("Section: Pulse Node");
+			else if (Simulation.mouseMode == MouseModeBackTop) ImGui::TextUnformatted("Section: Back/Top Nodes");
+			else ImGui::TextUnformatted("Section: None");
+		}
+		ImGui::TextUnformatted("Tab: Toggle GUI/Mouse mode");
+		if (BinarySaveStatusMessage[0] != '\0')
+		{
+			ImGui::Separator();
+			ImGui::TextWrapped("%s", BinarySaveStatusMessage);
+		}
 	ImGui::End();
 
 	// Mouse mode hides the control panel to match model behavior.
@@ -1823,221 +1661,196 @@ void createGUI()
 
 	// Main Controls Window
 	ImGui::Begin("Control Panel", NULL, window_flags); //title of the window, NULL means no pointer to a bool to close the window, window_flags are the flags we set above
-    
-	//update bool to match current state (makes sure clicking also works in addition to ctrl + h)
-	Simulation.guiCollapsed = ImGui::IsWindowCollapsed();
-    
-	// General simulation controls
-	if (ImGui::CollapsingHeader("Simulation Controls", ImGuiTreeNodeFlags_DefaultOpen)) //open by default
-	{
-		// View controls
-		bool frontHalf = Simulation.DrawFrontHalfFlag == 1; //Needed because ImGui needs a bool for a checkbox, can make a dropbox if more display options are needed
-		if(ImGui::Checkbox("Draw Front Half Only", &frontHalf)) //checkbox for if we only want to draw the first half of the nodes
+	    
+		//update bool to match current state (makes sure clicking also works in addition to ctrl + h)
+		Simulation.guiCollapsed = ImGui::IsWindowCollapsed();
+	    
+		// General simulation controls
+		if (ImGui::CollapsingHeader("Simulation Controls", ImGuiTreeNodeFlags_DefaultOpen)) //open by default
 		{
-			//when the button is pressed it will change the value of frontHalf to the opposite of what it was before
-			Simulation.DrawFrontHalfFlag = frontHalf ? 1 : 0;
-			drawPicture();
-		}
-		ShowTooltip("(F2)");
-	
-		// Node display options
-		const char* nodeOptions[] = { "Off", "Half", "Full" }; //array of options for the dropdown menu
-		int nodeDisplay = Simulation.DrawNodesFlag;
-
-		//Combo makes a dropdown menu with the options in the array
-		if(ImGui::Combo("Show Nodes", &nodeDisplay, nodeOptions, 3)) //args are menu name, pointer to the selected option, array of text options, # of options
-		{
-			if (nodeDisplay != Simulation.DrawNodesFlag) // Only update if the value changes
+			// View controls
+			bool frontHalf = Simulation.DrawFrontHalfFlag == 1; //Needed because ImGui needs a bool for a checkbox, can make a dropbox if more display options are needed
+			if(ImGui::Checkbox("Draw Front Half Only", &frontHalf)) //checkbox for if we only want to draw the first half of the nodes
 			{
-				Simulation.DrawNodesFlag = nodeDisplay;
+				//when the button is pressed it will change the value of frontHalf to the opposite of what it was before
+				Simulation.DrawFrontHalfFlag = frontHalf ? 1 : 0;
 				drawPicture();
 			}
-		}
-		ShowTooltip("(F3)");
-        	// Change view
-	}       
-       
-	// View presets
-	if (ImGui::CollapsingHeader("View Controls", ImGuiTreeNodeFlags_DefaultOpen))//2nd arg is the flags, DefaultOpen means it will be open by default
-	{
-		if (ImGui::Button("PA"))
-		{ 
-			setView(4); 
-			drawPicture(); 
-		}
-		ShowTooltip("(7)\nPosterior-Anterior View\nView from back to front");
 		
-		ImGui::SameLine();
-		if (ImGui::Button("AP"))  
+			// Node display options
+			const char* nodeOptions[] = { "Off", "Half", "Full" }; //array of options for the dropdown menu
+			int nodeDisplay = Simulation.DrawNodesFlag;
+
+			//Combo makes a dropdown menu with the options in the array
+			if(ImGui::Combo("Show Nodes", &nodeDisplay, nodeOptions, 3)) //args are menu name, pointer to the selected option, array of text options, # of options
+			{
+				if (nodeDisplay != Simulation.DrawNodesFlag) // Only update if the value changes
+				{
+					Simulation.DrawNodesFlag = nodeDisplay;
+					drawPicture();
+				}
+			}
+		}       
+	       
+		// View presets
+		if (ImGui::CollapsingHeader("View Controls", ImGuiTreeNodeFlags_DefaultOpen))//2nd arg is the flags, DefaultOpen means it will be open by default
 		{
-			setView(2); 
-			drawPicture(); 
+			if (ImGui::Button("PA"))
+			{ 
+				setView(4); 
+				drawPicture(); 
+			}
+			
+			ImGui::SameLine();
+			if (ImGui::Button("AP"))  
+			{
+				setView(2); 
+				drawPicture(); 
+			}
+			
+			ImGui::SameLine();
+			if (ImGui::Button("Ref"))
+			{ 
+				setView(6);  
+				drawPicture(); 
+			}
+			
+			if (ImGui::Button("LAO"))
+			{ 
+				setView(1);  
+				drawPicture(); 
+			}
+			
+			ImGui::SameLine();
+			if (ImGui::Button("RAO"))
+			{ 
+				setView(3); 
+				drawPicture(); 
+			}
+			
+			ImGui::SameLine();
+			if (ImGui::Button("LL"))
+			{ 
+				setView(7);  
+				drawPicture(); 
+			}
+
+			if (ImGui::Button("RL"))
+			{ 
+				setView(9); 
+				drawPicture(); 
+			}
+			
+			ImGui::SameLine();
+			if (ImGui::Button("SUP"))
+			{ 
+				setView(8);  
+				drawPicture(); 
+			}
+			
+			ImGui::SameLine();
+			if (ImGui::Button("INF"))
+			{ 
+				setView(5);  
+				drawPicture(); 
+			}
 		}
-		ShowTooltip("(8)\nAnterior-Posterior View\nView from front to back");
 		
-		ImGui::SameLine();
-		if (ImGui::Button("Ref"))
-		{ 
-			setView(6);  
-			drawPicture(); 
-		}
-		ShowTooltip("(9)\nReference View\nStandard orientation with pulmonary veins visible");
-		
-		if (ImGui::Button("LAO"))
-		{ 
-			setView(1);  
-			drawPicture(); 
-		}
-		ShowTooltip("(4)\nLeft Anterior Oblique\nAngled view from front-left");
-		
-		ImGui::SameLine();
-		if (ImGui::Button("RAO"))
-		{ 
-			setView(3); 
-			drawPicture(); 
-		}
-		ShowTooltip("(5)\nRight Anterior Oblique\nAngled view from front-right");
-		
-		ImGui::SameLine();
-		if (ImGui::Button("LL"))
-		{ 
-			setView(7);  
-			drawPicture(); 
-		}
-		ShowTooltip("(6)\nLeft Lateral\nDirect view from left side");
-
-		if (ImGui::Button("RL"))
-		{ 
-			setView(9); 
-			drawPicture(); 
-		}
-		ShowTooltip("(1)\nRight Lateral\nDirect view from right side");
-		
-		ImGui::SameLine();
-		if (ImGui::Button("SUP"))
-		{ 
-			setView(8);  
-			drawPicture(); 
-		}
-		ShowTooltip("(2)\nSuperior View\nView from above (top-down)");
-		
-		ImGui::SameLine();
-		if (ImGui::Button("INF"))
-		{ 
-			setView(5);  
-			drawPicture(); 
-		}
-		ShowTooltip("(3)\nInferior View\nView from below (bottom-up)");
-	}
-	
-	// Mouse mode selection
-	if (ImGui::CollapsingHeader("Mouse Functions", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		// Mouse mode buttons
-		// TODO: Implement the mouse mode defines here.
-		if (ImGui::Button("Mouse Off"))
+		// Mouse mode selection
+		if (ImGui::CollapsingHeader("Mouse Functions", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			setMouseMode(&Simulation, MouseModeOff); // OR whatever number for simulation off 
-		}
-		ShowTooltip("Disable mouse editing and return to GUI mode");
+			// Mouse mode buttons
+			// TODO: Implement the mouse mode defines here.
+			if (ImGui::Button("Mouse Off"))
+			{
+				setMouseMode(&Simulation, MouseModeOff); 
+			}
+			ShowTooltip("Clears the mouse's mode.");
+			if (ImGui::Button("Set Pulse Node")) 
+			{
+				setMouseMode(&Simulation, MouseModePulseNode); 
+			}
 
-		if (ImGui::Button("Set Standard Node")) 
-		{
-			setMouseMode(&Simulation, MouseModeStandardLA); 
-		}
-		// TODO: Make helper functions for tooltips
-		ShowTooltip("(F4)\nSet selected nodes to Standard");
+			if (ImGui::Button("Set Reference point & Nodes")) 
+			{
+				setMouseMode(&Simulation, MouseModeBackTop); 
+			}
 
-		if (ImGui::Button("Set Bachmann's Bundle")) 
-		{
-			setMouseMode(&Simulation, MouseModeBachmannsBundle);
-		}
-		ShowTooltip("(F5)\nSet selected nodes to Bachmann's Bundle");
-		if (ImGui::Button("Set Appendage")) 
-		{
-			setMouseMode(&Simulation, MouseModeAppendage);
-		}
-		ShowTooltip("(F6)\nSet selected nodes to Appendage");
-		if (ImGui::Button("Set Scar/Extra Tissue")) 
-		{
-			setMouseMode(&Simulation, MouseModeScarTissue); 
-		}
-		ShowTooltip("(F7)\nSet selected nodes to Scar Tissue");
+			if (ImGui::Button("Set Standard LA Node")) 
+			{
+				setMouseMode(&Simulation, MouseModeStandardLA); 
+			}
 
-		if (ImGui::Button("Set Pulse Node")) 
-		{
-			setMouseMode(&Simulation, MouseModePulseNode); 
+			if (ImGui::Button("Set Bachmann's Bundle")) 
+			{
+				setMouseMode(&Simulation, MouseModeBachmannsBundle);
+			}
+			
+			if (ImGui::Button("Set Appendage")) 
+			{
+				setMouseMode(&Simulation, MouseModeAppendage);
+			}
+			
+			if (ImGui::Button("Set Scar Tissue")) 
+			{
+				setMouseMode(&Simulation, MouseModeScarTissue); 
+			}
+
+			if (ImGui::Button("Set Pulmonary Veins")) 
+			{
+				setMouseMode(&Simulation, MouseModePulmonaryVeins); 
+			}
+
+			if (ImGui::Button("Set Mitral Valve")) 
+			{
+				setMouseMode(&Simulation, MouseModeMitralValve); 
+			}
+			
+			if (ImGui::Button("Set Back Wall")) 
+			{
+				setMouseMode(&Simulation, MouseModeBackWall); 
+			}
+			
+			if (ImGui::Button("Set Extra Tissue")) 
+			{
+				setMouseMode(&Simulation, MouseModeExtraTissue); 
+			}
+
 		}
-		ShowTooltip("Click a node to set it as the pulse node");
-
-		if (ImGui::Button("Set Back/Top Nodes")) 
+	    
+		// Utility functions
+		if (ImGui::CollapsingHeader("Utilities", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			setMouseMode(&Simulation, MouseModeBackTop); 
+			if (ImGui::Button("Save Binary"))
+			{
+				saveBinary();
+			}
 		}
-		ShowTooltip("Click a back node; the top node is calculated from type 0 wall nodes");
 
-		if (ImGui::Button("Set Pulmonary Veins")) 
+		//Display movement controls
+		if (ImGui::CollapsingHeader("Keyboard Controls"))
 		{
-			setMouseMode(&Simulation, MouseModePulmonaryVeins); 
+			ImGui::Text("Quit: esc");
+			ImGui::NewLine(); //added a new line for spacing
+			ImGui::Text("Translate Left/Right: x/X");
+			ImGui::Text("Translate Up/Down:    y/Y");
+			ImGui::Text("Translate In/Out:     z/Z");
+			ImGui::NewLine(); //added a new line for spacing
+			ImGui::Text("Rotate X-axis: Ctrl x/X");
+			ImGui::Text("Rotate Y-axis: Ctrl y/Y");
+			ImGui::Text("Rotate Z-axis: Ctrl z/Z");
+			ImGui::NewLine(); //added a new line for spacing
+			ImGui::Text("Toggle GUI/Mouse mode: Tab");			
 		}
-		ShowTooltip("(F8)\nSet selected nodes to Pulmonary Veins");
-
-		if (ImGui::Button("Set Mitral Valve")) 
-		{
-			setMouseMode(&Simulation, MouseModeMitralValve); 
-		}
-		ShowTooltip("(F9)\nSet selected nodes to Mitral Valve");
-
-	}
-    
-	// Utility functions
-	if (ImGui::CollapsingHeader("Utilities", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		if (ImGui::Button("Reset"))
-		{
-			resetToOriginalOrClear();
-		}
-		ShowTooltip("Reset to original binary state (if .bin), otherwise clear all types");
-
-		ImGui::SameLine();
-		if (ImGui::Button("Clear All"))
-		{
-			clearAllTypes();
-		}
-		ShowTooltip("Clear all node/muscle types to default (Standard)");
-
-		if (ImGui::Button("Save Binary"))
-		{
-			saveBinary();
-		}
-		ShowTooltip("(Ctrl + Shift + S)\nSave node/muscle attributes to\n<NodesMusclesFileName>_<timestamp>.bin");
-
-		if (BinarySaveStatusMessage[0] != '\0')
-		{
-			ImGui::TextWrapped("%s", BinarySaveStatusMessage);
-		}
-	}
-
-	//Display movement controls
-	if (ImGui::CollapsingHeader("Keyboard Controls"))
-	{
-
-		ImGui::Text("Quit: esc");
-		ImGui::NewLine(); //add a new line for spacing
-		ImGui::Text("Rotate X-axis: a/d; Left/Right");
-		ImGui::Text("Rotate Y-axis: w/s; Up/Down");
-		ImGui::Text("Rotate Z-axis: z/Z; Shift + Left/Right");
-		ImGui::Text("Zoom In/Out: e/E; Shift + Up/Down");
-		ImGui::Text("Toggle GUI/Mouse mode: Tab");
-		ImGui::Text("Collapse/Expand GUI: Ctrl + h");				
-	}
-    
 	ImGui::End(); //end the main controls window
   
 }
 
 //******************* Utility Functions ********************************************
-
+/*
+ This function:
+ Simple finds the center of the object and returns it.
+*/
 float4 findCenterOfObject()
 {
 	float4 centerOfObject;
@@ -2069,7 +1882,8 @@ float4 findCenterOfObject()
 }
 
 /*
- This function centers the LA and resets the center of view to (0, 0, 0).
+ This function: 
+ Centers the LA and resets the center of view to (0, 0, 0).
  It is called periodically in a running simulation to center the LA, because the LA is not symmetrical 
  and will wander off over time. It is also use to center the LA before all the views are set.
 */
@@ -2088,14 +1902,15 @@ void centerObject()
 	CenterOfSimulation.z = 0.0;
 }
 
+/* 
+ This function:
+ Physicaly otates the object. It takes the angle then looks to see which axis is not zero and it rotates around those axises.
+ You could use glRotate and this would change your view but your x,y,z locations do not get ajdusted and where we put the 
+ selection sphere when selecting nodes get all screwed up so we most move all the nodes not the view.
+ This is the view rotate function for reference glRotatef(dAngle, 0.0f, 0.0f, 1.0f);
+*/	
 void rotateObject(float angle, int xAxis, int yAxis, int zAxis)
 {
-	/* 
-	You could use glRotate and this would change your view but your x,y,z locations do not get ajdusted and where we put the 
-	selection sphere when selecting nodes get all screwed up so we most move all the nodes not the view.
-	glRotatef(dAngle, 0.0f, 0.0f, 1.0f);
-	*/
-	
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
 		Node[i].position.x -= CenterOfSimulation.x;
@@ -2143,13 +1958,15 @@ void rotateObject(float angle, int xAxis, int yAxis, int zAxis)
 	}
 }
 
+/* 
+ This function:
+ Translates the object by dx. dy, and dz.
+ You could use glTranslatef and this would change your view but your x,y,z locations do not get ajdusted and where we put the 
+ selection sphere when selecting nodes get all screwed up so we must move all the nodes not the view.
+ This is the view translate function for reference glTranslatef(dx, dy, dz);
+*/
 void translateObject(float dx, float dy, float dz)
 {
-	/* 
-	You could use glTranslatef and this would change your view but your x,y,z locations do not get ajdusted and where we put the 
-	selection sphere when selecting nodes get all screwed up so we most move all the nodes not the view.
-	glTranslatef(dx, dy, dz);
-	*/
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
 		Node[i].position.x += dx;
@@ -2210,7 +2027,7 @@ void setAllMuscleTypesAndColors()
 bool isNodeInMouseSphere(int nodeId, float3 mousePos) 
 {
 	float dx, dy,dz, d2, hit2;
-	hit2 = HitMultiplier * HitMultiplier * RadiusOfLeftAtrium * RadiusOfLeftAtrium;
+	hit2 = MouseSelectionRadiusMultiplier * MouseSelectionRadiusMultiplier * RadiusOfLeftAtrium * RadiusOfLeftAtrium;
 	dx = Node[nodeId].position.x - mousePos.x;
 	dy = Node[nodeId].position.y - mousePos.y; 
 	dz = Node[nodeId].position.z - mousePos.z; 
@@ -2227,7 +2044,7 @@ int findClosestNodeToMouse(float3 mousePos)
 {
 	int closestNode = -1;
 	float closestDistSquared = FLOATMAX;
-	float hitRadiusSquared = HitMultiplier * HitMultiplier * RadiusOfLeftAtrium * RadiusOfLeftAtrium;
+	float hitRadiusSquared = MouseSelectionRadiusMultiplier * MouseSelectionRadiusMultiplier * RadiusOfLeftAtrium * RadiusOfLeftAtrium;
 
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
@@ -2244,6 +2061,53 @@ int findClosestNodeToMouse(float3 mousePos)
 	return closestNode;
 }
 
+/*
+ This function:
+ Returns priority for a node type when resolving mixed-type muscles.
+ Returns -1 for unknown types.
+ Put an integer behind each type with smallest number being the most important
+ and largest being the least important. If you need to add a new type just place it in
+ the list and arange the priority.
+*/
+int getTypePriority(int type)
+{
+	if(type == NodeTypeStandardLA) return 7;
+	if(type == NodeTypeBachmannBundle) return 1;
+	if(type == NodeTypeAppendage) return 3;
+	if(type == NodeTypeScarTissue) return 6;
+	if(type == NodeTypePulmonaryVeins) return 2;
+	if(type == NodeTypeMitralValve) return 4;
+	if(type == NodeTypeBackWall) return 5;
+	if(type == NodeTypeExtraTissue) return 8;
+	else
+	{
+		printf("\n\n Unknown node type while setting type priority.");
+		printf("\n Simulation has been terminated.");
+		exit(0);
+	}
+}
+
+/*
+ This function:
+ Returns the color for given type.
+*/
+float4 getColorFromType(int type)
+{	
+	if(type == NodeTypeStandardLA) return ColorStandardLA;
+	if(type == NodeTypeBachmannBundle) return ColorBachmannsBundle;
+	if(type == NodeTypeAppendage) return ColorAppendage;
+	if(type == NodeTypeScarTissue) return ColorScarTissue;
+	if(type == NodeTypePulmonaryVeins) return ColorPulmonaryVeins;
+	if(type == NodeTypeMitralValve) return ColorMitralValve;
+	if(type == NodeTypeBackWall) return ColorBackWall;
+	if(type == NodeTypeExtraTissue) return ColorExtraTissue;
+	else
+	{
+		printf("\n\n Unknown node type while setting type colors.");
+		printf("\n Simulation has been terminated.");
+		exit(0);
+	}
+}
 
 /*
  This function returns a timestamp in M-D-Y-H.M.S format.
@@ -2280,6 +2144,10 @@ std::string getTimeStamp()
 	return timeStamp;
 }
 
+/*
+ This function:
+ Frees memory and shuts everything dowm.
+*/
 void shutdownAndCleanup()
 {
 	//delete the state file if it exists. BMW I do not think we need this.

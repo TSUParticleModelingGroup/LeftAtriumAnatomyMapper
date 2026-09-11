@@ -478,11 +478,11 @@ void saveBinary()
 	setAllMuscleTypesAndColors();
 
 	// Build output file path with timestamp suffix to avoid name collisions.
-	std::string timeStamp = getTimeStamp();
+	const char *timeStamp = getTimeStamp();
 	strcpy(fileName, "../NodesMusclesLAMapping/bin/");
 	strcat(fileName, NodesMusclesFileName);
 	strcat(fileName, "_");
-	strcat(fileName, timeStamp.c_str());
+	strcat(fileName, timeStamp);
 	strcat(fileName, ".bin");
 
 	// Open output file in binary write mode.
@@ -2114,34 +2114,22 @@ float4 getColorFromType(int type)
  This is use so each file that is created has a unique name. 
  Note: You cannot create more than one file in a second or you will over write the previous file.
 */
-std::string getTimeStamp()
+const char *getTimeStamp(void)
 {
-	// Want to get a time stamp string representing current date/time, so we have a
-	// unique name for each video/screenshot taken.
-	time_t t = time(0); 
-	struct tm * now = localtime( & t );
-	int month = now->tm_mon + 1, day = now->tm_mday, year = now->tm_year, curTimeHour = now->tm_hour, curTimeMin = now->tm_min, curTimeSec = now->tm_sec;
+    static char timestamp[64];
+    time_t t = time(NULL);
+    struct tm *now = localtime(&t);
 
-	std::stringstream smonth, sday, syear, stimeHour, stimeMin, stimeSec;
-
-	smonth << month;
-	sday << day;
-	syear << (year + 1900); // The computer starts counting from the year 1900, so 1900 is year 0. So we fix that.
-	stimeHour << curTimeHour;
-	stimeMin << curTimeMin;
-	stimeSec << curTimeSec;
-	std::string timeStamp;
-
-	if (curTimeMin <= 9)
-	{
-		timeStamp = smonth.str() + "-" + sday.str() + "-" + syear.str() + '_' + stimeHour.str() + ".0" + stimeMin.str() + "." + stimeSec.str();
-	}
-	else
-	{		
-		timeStamp = smonth.str() + "-" + sday.str() + '-' + syear.str() + "_" + stimeHour.str() + "." + stimeMin.str() + "." + stimeSec.str();
-	}
-
-	return timeStamp;
+    if (now == NULL) return "";
+    snprintf(timestamp, sizeof(timestamp),
+             "%d-%d-%d_%d.%02d.%02d",
+             now->tm_mon + 1,
+             now->tm_mday,
+             now->tm_year + 1900,
+             now->tm_hour,
+             now->tm_min,
+             now->tm_sec);
+    return timestamp;
 }
 
 /*

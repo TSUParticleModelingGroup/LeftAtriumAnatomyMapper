@@ -19,7 +19,7 @@
 #include <vector> //needed for VBOs
 
 // Needed to make 
-#include <cuda_runtime.h>
+//#include <cuda_runtime.h>
 
 // OpenGL headers - GLAD must come BEFORE GLFW
 #include "../include/glad/glad.h"
@@ -253,7 +253,7 @@ bool isNodeInMouseSphere(int, float3); //done
 int findClosestNodeToMouse(float3); //done
 int getTypePriority(int); //done
 float4 getColorFromType(int); //done
-std::string getTimeStamp(); //done
+const char *getTimeStamp(); //done
 void shutdownAndCleanup(); //done
 
 

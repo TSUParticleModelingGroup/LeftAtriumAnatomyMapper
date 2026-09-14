@@ -72,7 +72,7 @@ int main(int argc, char** argv)
 	glfwSetKeyCallback(Window, keyPressedCallback); //sets the callback for the keyboard
 	
 	// Set the clear color to the background color
-	glClearColor(BackGround.x, BackGround.y, BackGround.z, 1.0f);
+	glClearColor(BackGroundColor.x, BackGroundColor.y, BackGroundColor.z, 1.0f);
 
 	//Lighting and material properties
 	glEnable(GL_LIGHTING);
@@ -151,25 +151,18 @@ int main(int argc, char** argv)
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity(); //Necessary here
 	gluLookAt(EyeX, EyeY, EyeZ, CenterX, CenterY, CenterZ, UpX, UpY, UpZ);
-    
-	// Draw once to initialize everything
-	drawPicture();
-	glfwSwapBuffers(Window);
-    
 	
 	// Main loop
 	while (Run == 1 && glfwWindowShouldClose(Window) == 0) // You need the glfwWindowShouldClose so when xing out of the window it will die.
 	{
 		glfwPollEvents();
 
-		//keyHeld(Window); // Handle key hold events
-
 		// Start ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 		// Always draw every frame - this is critical for GLFW performance
-		drawPicture();
+		createImage();
 		// Create and render GUI
 		createGUI();
 		ImGui::Render();
@@ -206,13 +199,13 @@ void readLAMappingSetupParameters()
 		data >> NodePointSize;
 
 		getline(data,name,'=');
-		data >> BackGround.x;
+		data >> BackGroundColor.x;
 		
 		getline(data,name,'=');
-		data >> BackGround.y;
+		data >> BackGroundColor.y;
 		
 		getline(data,name,'=');
-		data >> BackGround.z;
+		data >> BackGroundColor.z;
 	}
 	else
 	{
@@ -447,7 +440,7 @@ void readNodesAndMusclesFromBinaryFile()
 	}
 
 	fclose(inFile);
-	printf("\n Binary file %s has been read in.\n", fileName);
+	printf("\n Binary file %s has been read in.\n\n", fileName);
 }
 
 
@@ -490,7 +483,7 @@ void saveBinary()
 	if(binaryFile == NULL)
 	{
 		printf("\n\n Could not create binary file %s.\n", fileName);
-		snprintf(BinarySaveStatusMessage, sizeof(BinarySaveStatusMessage), "Binary save failed: Could not create output file.");
+		snprintf(SubGUIMessage, sizeof(SubGUIMessage), "Binary save failed: Could not create output file.");
 		return;
 	}
 
@@ -540,7 +533,7 @@ void saveBinary()
 	fclose(binaryFile);
 	printf("\n Binary file saved: %s\n", fileName);
 	
-	strcpy(BinarySaveStatusMessage, "Binary saved");
+	strcpy(SubGUIMessage, "Binary saved");
 }
 
 //******************* Setup Functions **********************************************
@@ -580,19 +573,23 @@ void setup()
 	AngleOfSimulation.z = 0.0;
 	AngleOfSimulation.w = 0.0;
 
+	Simulation.mouseMode = MouseModeOff;
 	Simulation.DrawNodesFlag = 0;
 	Simulation.DrawFrontHalfFlag = 0;
 	Simulation.isInMouseFunctionMode = false;
-	Simulation.mouseMode = MouseModeOff;
 	Simulation.guiCollapsed = false;
-
-	MouseSelectionRadiusMultiplier = 0.1;
+	
+	// Initial lacation of the slection sphere.
 	MouseZ = RadiusOfLeftAtrium;
 	MouseX = 0.0;
 	MouseY = 0.0;
+	MouseSelectionRadiusMultiplier = 0.1;
+	
+	// Scroll wheel speeds and toggle.
 	ScrollSpeedToggle = 1;
-	ScrollSpeed = 0.5;
-	MouseWheelPos = 0;
+	ScrollSpeedFast = 1.0;
+	ScrollSpeedSlow = 0.1;
+	ScrollSpeed = ScrollSpeedFast;
 	
 	printf("\n\n Have a good simulation.\n\n");
 }
@@ -732,7 +729,7 @@ double findAverageRadiusOfObject()
 	}
 
 	averageRadius = totalRadius/NumberOfNodes;
-	printf("The average radius of the object is %f mm\n", averageRadius); // The average radius for RealisticLA is around 25.8 mm
+	printf(" The average radius of the object is %f mm\n", averageRadius); // The average radius for RealisticLA is around 25.8 mm
 	return averageRadius;
 }
 
@@ -815,7 +812,7 @@ void setReferencePoints()
 	}
 	if(backId == -1)
 	{
-		printf("\n\n Error: Could not find ReferenceBackNode. Simulation is terminated");
+		printf("\n\n Error: Could not find ReferenceBackNode. Simulation is terminated\n\n");
 		exit(0);
 	}
 	
@@ -824,8 +821,7 @@ void setReferencePoints()
 	ReferenceBackNode = backId;
 	ReferenceCenter = center;
 	
-	printf("\n ReferenceUpNode, ReferenceBackNode, and  ReferenceCenter have been set.");
-	drawPicture();
+	printf("\n ReferenceUpNode, ReferenceBackNode, and  ReferenceCenter have been set.\n\n");
 }
 
 
@@ -853,7 +849,6 @@ void setMouseMode(simulationSwitchesStructure* sim, int mode)
 {
 	sim->mouseMode = mode;
 	toggleNodeSelector(sim, mode);	
-	// drawPicture();
 }
 
 void assignNodes(float3 mousePos, int nodeType)
@@ -1029,9 +1024,10 @@ void setView(int view)
 //******************* Draw Functions ***********************************************
 
 /*
- This function draws the LA to the screen.
+ This function:
+ Creates the LA image.
 */
-void drawPicture()
+void createImage()
 {
 	//int nodeNumber;
 	int muscleNumber;
@@ -1039,8 +1035,6 @@ void drawPicture()
 	glClear(GL_COLOR_BUFFER_BIT);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	
-	//if(!Simulation.isPaused) glColor3d(0.0,1.0,0.0); // Green is running
-	//else glColor3d(1.0,0.0,0.0); // Red is paused	
 	glColor3d(Node[PulsePointNode].color.x, Node[PulsePointNode].color.y, Node[PulsePointNode].color.z);
 	glPushMatrix();
 	glTranslatef(Node[PulsePointNode].position.x, Node[PulsePointNode].position.y, Node[PulsePointNode].position.z);
@@ -1181,7 +1175,8 @@ void drawPicture()
 }
 
 /*
-Spheres use for the body of the LA. Created once and stored so they are much faster.
+ This function:
+ Creates spheres use for the body of the LA. Created once and stored so they are much faster.
 */
 void renderSphereVBO() 
 {
@@ -1212,7 +1207,8 @@ void renderSphereVBO()
 
 // Add this to a utility file, only used for the mouse selection since it's just 1 object
 /*
-Single sphere created for the mouse which can change. It is slower but it is just one sphere.
+ This function:
+ Creates a single sphere created for the mouse which can change. It is slower but it is just one sphere.
 */
 void renderSphere(float radius, int slices, int stacks) 
 {
@@ -1250,14 +1246,15 @@ void renderSphere(float radius, int slices, int stacks)
 }
 
 /*
-Spheres use for the body of the LA. Created once and stored so they are much faster.
+ This function:
+ Creates spheres used for the body of the LA. Created once and stored so they are much faster.
 */
 void createSphereVBO(float radius, int slices, int stacks)
 {
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
     
-    // Generate sphere vertices with positions and normals
+	// Generate sphere vertices with positions and normals
 	for (int i = 0; i <= stacks; ++i) 
 	{
 		// Calculate the vertical angle phi (0 to PI, from top to bottom of sphere)
@@ -1345,6 +1342,35 @@ void createSphereVBO(float radius, int slices, int stacks)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+/*
+ This function:
+ Takes a screenshot of the LA Image.
+*/
+void screenShot()
+{	
+	FILE* ScreenShotFile;
+	unsigned char* buffer; //unsigned char because we are using RGBA data, which is 4 bytes per pixel, 1 char = 1 byte
+
+	char cmd[512];
+
+	const char *timeStamp = getTimeStamp();
+	sprintf(cmd, "ffmpeg -loglevel error -f rawvideo -pix_fmt rgba -s %dx%d -i - -frames:v 1 -vf \"scale=%d:%d,vflip\" -c:v png \"../ScreenShots/%s.png\"", 
+				XWindowSize, YWindowSize, XWindowSize, YWindowSize, timeStamp );
+	
+	ScreenShotFile = popen(cmd, "w");
+	buffer = (unsigned char*)malloc(4 * XWindowSize * YWindowSize);
+	
+	createImage();
+	glReadPixels(0, 0, XWindowSize, YWindowSize, GL_RGBA, GL_UNSIGNED_BYTE, buffer);   
+	fwrite(buffer, 4 * XWindowSize * YWindowSize, 1, ScreenShotFile);
+	
+	pclose(ScreenShotFile);
+	free(buffer);
+	
+	strcpy(SubGUIMessage, "Screen Shot saved");
+	printf("\nScreenshot Captured: \n");
+}
+
 //******************* Callback Functions ***********************************************
 
 /*
@@ -1393,6 +1419,11 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 		}
 		return;
 	}
+	
+	if(key == GLFW_KEY_S && action == GLFW_PRESS)
+        {
+        	screenShot();
+        }
         
         // X-axis Translations and Rotations
         if(key == GLFW_KEY_X && (action == GLFW_PRESS || action == GLFW_REPEAT))
@@ -1421,8 +1452,6 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 		else translateObject(0.0, 0.0, -dz);
         }
         
-        drawPicture();
-        
 	// See if GUI wants this event (prevents shortcuts while typing in text fields).
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.WantCaptureKeyboard)
@@ -1442,13 +1471,11 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 		case GLFW_KEY_KP_SUBTRACT: // Decrease selector size
 			MouseSelectionRadiusMultiplier -= 0.01f;
 			if(MouseSelectionRadiusMultiplier < 0.01f) MouseSelectionRadiusMultiplier = 0.01f;
-			drawPicture();
 			break;
 
 		case GLFW_KEY_KP_ADD: // Increase selector size
 			MouseSelectionRadiusMultiplier += 0.025f;
 			if(MouseSelectionRadiusMultiplier > 0.5f) MouseSelectionRadiusMultiplier = 0.5f;
-			drawPicture();
 			break;
 		default: // For any other key, do nothing
 			break;
@@ -1539,16 +1566,15 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 			if(ScrollSpeedToggle == 0)
 			{
 				ScrollSpeedToggle = 1;
-				ScrollSpeed = 1.0;
+				ScrollSpeed = ScrollSpeedFast;
 			}
 			else
 			{
 				ScrollSpeedToggle = 0;
-				ScrollSpeed = 0.1;
+				ScrollSpeed = ScrollSpeedSlow;
 			}
 			
 		}
-		drawPicture();
 	}
 }
 
@@ -1581,8 +1607,6 @@ void scrollWheelCallback(GLFWwindow* window, double xoffset, double yoffset)
 			MouseZ += ScrollSpeed;
 		}
 	}
-
-	drawPicture();
 }
 
 //******************* Graphical User Interface Functions ***********************************************
@@ -1632,10 +1656,10 @@ void createGUI()
 			else ImGui::TextUnformatted("Section: None");
 		}
 		ImGui::TextUnformatted("Tab: Toggle GUI/Mouse mode");
-		if (BinarySaveStatusMessage[0] != '\0')
+		if (SubGUIMessage[0] != '\0')
 		{
 			ImGui::Separator();
-			ImGui::TextWrapped("%s", BinarySaveStatusMessage);
+			ImGui::TextWrapped("%s", SubGUIMessage);
 		}
 	ImGui::End();
 
@@ -1674,7 +1698,6 @@ void createGUI()
 			{
 				//when the button is pressed it will change the value of frontHalf to the opposite of what it was before
 				Simulation.DrawFrontHalfFlag = frontHalf ? 1 : 0;
-				drawPicture();
 			}
 		
 			// Node display options
@@ -1687,7 +1710,6 @@ void createGUI()
 				if (nodeDisplay != Simulation.DrawNodesFlag) // Only update if the value changes
 				{
 					Simulation.DrawNodesFlag = nodeDisplay;
-					drawPicture();
 				}
 			}
 		}       
@@ -1698,61 +1720,52 @@ void createGUI()
 			if (ImGui::Button("PA"))
 			{ 
 				setView(4); 
-				drawPicture(); 
 			}
 			
 			ImGui::SameLine();
 			if (ImGui::Button("AP"))  
 			{
 				setView(2); 
-				drawPicture(); 
 			}
 			
 			ImGui::SameLine();
 			if (ImGui::Button("Ref"))
 			{ 
 				setView(6);  
-				drawPicture(); 
 			}
 			
 			if (ImGui::Button("LAO"))
 			{ 
-				setView(1);  
-				drawPicture(); 
+				setView(1);   
 			}
 			
 			ImGui::SameLine();
 			if (ImGui::Button("RAO"))
 			{ 
 				setView(3); 
-				drawPicture(); 
 			}
 			
 			ImGui::SameLine();
 			if (ImGui::Button("LL"))
 			{ 
 				setView(7);  
-				drawPicture(); 
 			}
 
 			if (ImGui::Button("RL"))
 			{ 
 				setView(9); 
-				drawPicture(); 
 			}
 			
 			ImGui::SameLine();
 			if (ImGui::Button("SUP"))
 			{ 
 				setView(8);  
-				drawPicture(); 
 			}
 			
 			ImGui::SameLine();
 			if (ImGui::Button("INF"))
 			{ 
 				setView(5);  
-				drawPicture(); 
 			}
 		}
 		
@@ -1824,6 +1837,10 @@ void createGUI()
 			if (ImGui::Button("Save Binary"))
 			{
 				saveBinary();
+			}
+			if (ImGui::Button("Screen Shot"))
+			{
+				screenShot();
 			}
 		}
 

@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 
 	if(!glfwInit()) // Initialize GLFW, check for failure
 	{
-        	printf("Failed to initialize GLFW\n");
+        	printf("\n Error: Failed to initialize GLFW\n");
         	return -1;
         }
 
@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 
 	if (!Window) 
 	{
-		printf("Failed to create window\n");
+		printf("\n Error: Failed to create window\n");
 		return -1;
 	}
 
@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))  // Initialize GLAD, check for failure
 	{
-		printf("Failed to initialize GLAD\n");
+		printf("\n Error: Failed to initialize GLAD\n");
 		glfwTerminate();
 		return -1;
 	}
@@ -209,8 +209,8 @@ void readLAMappingSetupParameters()
 	}
 	else
 	{
-		printf("\n\n Could not open SetupLAMapping file.");
-		printf("\n The simulation has been terminated.\n\n");
+		printf("\n Error: Could not open SetupLAMapping file.");
+		printf("\n The simulation has been terminated.\n");
 		exit(0);
 	}
 	
@@ -244,8 +244,8 @@ void readNodesFromRawFile()
 	inFile = fopen(fileName,"r");
 	if(inFile == NULL)
 	{
-		printf("\n\n Can't open Nodes file %s.", fileName);
-		printf("\n The simulation has been terminated.\n\n");
+		printf("\n Error: Can't open Nodes file %s.", fileName);
+		printf("\n The simulation has been terminated.\n");
 		exit(0);
 	}
 	
@@ -324,14 +324,14 @@ void readMusclesFromRawFile()
 	inFile = fopen(fileName,"r");
 	if (inFile == NULL)
 	{
-		printf("\n\n Can't open Muscles file %s.", fileName);
+		printf("\n Error: Can't open Muscles file %s.", fileName);
 		printf("\n The simulation has been terminated.\n\n");
 		exit(0);
 	}
 	
 	// 2: Reading the number of muscles.
 	fscanf(inFile, "%d", &NumberOfMuscles);
-	printf("\n NumberOfMuscles = %d", NumberOfMuscles);
+	printf("\n NumberOfMuscles = %d\n", NumberOfMuscles);
 	
 	// 3: Allocating memory for the muscles. 
 	Muscle = (muscleAttributesStructure*)malloc(NumberOfMuscles*sizeof(muscleAttributesStructure));
@@ -352,22 +352,22 @@ void readMusclesFromRawFile()
 	{
 		if(fscanf(inFile, "%d %d %d", &id, &idNode1, &idNode2) != 3)
 		{
-			printf("\n\n Invalid muscle format. Expected: id type nodeA nodeB.");
-			printf("\n The simulation has been terminated.\n\n");
+			printf("\n Error: Invalid muscle format. Expected: id type nodeA nodeB.");
+			printf("\n The simulation has been terminated.\n");
 			exit(0);
 		}
 		
 		if(id < 0 || NumberOfMuscles <= id)
 		{
-			printf("\n\n You are trying to create a muscle that is out of bounds.");
-			printf("\n The simulation has been terminated.\n\n");
+			printf("\n Error: You are trying to create a muscle that is out of bounds.");
+			printf("\n The simulation has been terminated.\n");
 			exit(0);
 		}
 		if(idNode1 < 0 || idNode2 < 0 || NumberOfNodes <= idNode1 || NumberOfNodes <= idNode2)
 		{
-			printf("\n\n You are trying to connect to a node that is out of bounds.");
-			printf("\n\n idNode1 = %d idNode2 = %d.", idNode1, idNode2);
-			printf("\n The simulation has been terminated.\n\n");
+			printf("\n Error: You are trying to connect to a node that is out of bounds.");
+			printf("\n idNode1 = %d idNode2 = %d.", idNode1, idNode2);
+			printf("\n The simulation has been terminated.\n");
 			exit(0);
 		}
 		Muscle[id].type = 0;  // Default to LA muscle.
@@ -404,8 +404,8 @@ void readNodesAndMusclesFromBinaryFile()
 	inFile = fopen(fileName, "rb");
 	if(inFile == NULL)
 	{
-		printf("\n\n Can't open binary file %s.", fileName);
-		printf("\n The simulation has been terminated.\n\n");
+		printf("\n Error: Can't open binary file %s.", fileName);
+		printf("\n The simulation has been terminated.\n");
 		exit(0);
 	}
 
@@ -440,16 +440,19 @@ void readNodesAndMusclesFromBinaryFile()
 	}
 
 	fclose(inFile);
-	printf("\n Binary file %s has been read in.\n\n", fileName);
+	printf("\n Binary file %s has been read in.\n", fileName);
 }
 
 
 //******************* File Output Functions ****************************************
 
 /*
- Saves node/muscle attributes to one binary file using a simple fwrite layout.
+ This function:
+ Saves run information "pulse node, viewing information" and the node/muscle particle structures to a binary file.
+ I say particle structures because the simulation code will generate several more elements to the node and muscle 
+ structures need to run the simulation.
  The file is written to:
- ../NodesMuscles/bin/<NodesMusclesFileName>_<timestamp>.bin
+ ../NodesMusclesLAMapping/bin/<NodesMusclesFileName>_<timestamp>.bin
 
  Binary layout:
  - NumberOfNodes int
@@ -467,7 +470,7 @@ void saveBinary()
 	FILE *binaryFile;
 	char fileName[512];
 
-	// Ensure muscle types reflect the current node typing before export.
+	// Ensure all the muscles types are set before saving.
 	setAllMuscleTypesAndColors();
 
 	// Build output file path with timestamp suffix to avoid name collisions.
@@ -482,12 +485,12 @@ void saveBinary()
 	binaryFile = fopen(fileName, "wb");
 	if(binaryFile == NULL)
 	{
-		printf("\n\n Could not create binary file %s.\n", fileName);
+		printf("\nError: Could not create binary file %s.\n", fileName);
 		snprintf(SubGUIMessage, sizeof(SubGUIMessage), "Binary save failed: Could not create output file.");
 		return;
 	}
 
-	// Save counts and required orientation nodes.
+	// Save counts and pulseNode and orientation nodes.
 	fwrite(&NumberOfNodes, sizeof(int), 1, binaryFile);
 	fwrite(&NumberOfMuscles, sizeof(int), 1, binaryFile);
 	fwrite(&PulsePointNode, sizeof(int), 1, binaryFile);
@@ -499,41 +502,28 @@ void saveBinary()
 	// Save nodes.
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
-		// Write node type for section classification.
 		fwrite(&Node[i].type, sizeof(int), 1, binaryFile);
-		// Write node position used to reconstruct geometry.
 		fwrite(&Node[i].position, sizeof(float4), 1, binaryFile);
-		// Write node-to-muscle connectivity map.
-		fwrite(Node[i].muscle, sizeof(int), MUSCLES_PER_NODE, binaryFile);
-		// Write node color so section coloring can be restored later.
+		fwrite(Node[i].muscle, sizeof(int), MUSCLES_PER_NODE, binaryFile); // Node to muscle connections.
 		fwrite(&Node[i].color, sizeof(float4), 1, binaryFile);
 	}
 
-	// Save muscles information
+	// Save muscles.
 	for(int i = 0; i < NumberOfMuscles; i++)
 	{
-		// Recompute rest length from node positions so geometry and mechanics stay in sync.
-		//float dx = Node[Muscle[i].nodeA].position.x - Node[Muscle[i].nodeB].position.x;
-		//float dy = Node[Muscle[i].nodeA].position.y - Node[Muscle[i].nodeB].position.y;
-		//float dz = Node[Muscle[i].nodeA].position.z - Node[Muscle[i].nodeB].position.z;
-		//float naturalLength = sqrtf(dx*dx + dy*dy + dz*dz);
-
-		// Write muscle section type.
 		fwrite(&Muscle[i].type, sizeof(int), 1, binaryFile);
-		// Write both endpoint node ids.
 		fwrite(&Muscle[i].nodeA, sizeof(int), 1, binaryFile);
 		fwrite(&Muscle[i].nodeB, sizeof(int), 1, binaryFile);
-		// Write natural length used by mechanics.
 		fwrite(&Muscle[i].naturalLength, sizeof(float), 1, binaryFile);
-		// Write muscle color so section coloring can be restored later.
 		fwrite(&Muscle[i].color, sizeof(float4), 1, binaryFile);
 	}
 
 	// Close file handle before reporting success.
 	fclose(binaryFile);
-	printf("\n Binary file saved: %s\n", fileName);
+	printf("\n Binary file has been saved: %s\n", fileName);
 	
-	strcpy(SubGUIMessage, "Binary saved");
+	// Placing message on GUI so user knows the file has been saved.
+	strcpy(SubGUIMessage, "Binary File Saved");
 }
 
 //******************* Setup Functions **********************************************
@@ -573,7 +563,7 @@ void setup()
 	AngleOfSimulation.z = 0.0;
 	AngleOfSimulation.w = 0.0;
 
-	Simulation.mouseMode = MouseModeOff;
+	Simulation.mouseMode = MouseModeStandardLA;
 	Simulation.DrawNodesFlag = 0;
 	Simulation.DrawFrontHalfFlag = 0;
 	Simulation.isInMouseFunctionMode = false;
@@ -591,7 +581,7 @@ void setup()
 	ScrollSpeedSlow = 0.1;
 	ScrollSpeed = ScrollSpeedFast;
 	
-	printf("\n\n Have a good simulation.\n\n");
+	printf("\n Have a good simulation.\n");
 }
 
 /* 
@@ -651,7 +641,7 @@ void checkNodes()
 				d = sqrt(dx*dx + dy*dy + dz*dz);
 				if(d < cutoff)
 				{
-					printf("\n Nodes %d and %d are too close. Their separation is %f", i, j, d);
+					printf("\n Nodes %d and %d are too close. Their separation is %f\n", i, j, d);
 					//printf("\n (%f, %f, %f)", Node[i].position.x, Node[i].position.y, Node[i].position.z);
 					//printf("\n (%f, %f, %f)", Node[j].position.x, Node[j].position.y, Node[j].position.z);
 					//printf("\n");
@@ -664,7 +654,7 @@ void checkNodes()
 	// 3: Terminating the simulation if nodes were flagged.
 	if(flag == true)
 	{
-		printf("\n\n The average nearest separation for all the nodes is %f.", averageMinSeparation);
+		printf("\n Error: The average nearest separation for all the nodes is %f.", averageMinSeparation);
 		printf("\n The cutoff separation is %f.", cutoff);
 		printf("\n The simulation has been terminated.\n\n");
 		exit(0);
@@ -690,10 +680,10 @@ void linkRawNodesToMuscles()
 			{
 				if(MUSCLES_PER_NODE < k) // Making sure we do not go out of bounds.
 				{
-					printf("\n\n Number of muscles connected to node %d is larger than the allowed number of", i);
+					printf("\n Error: Number of muscles connected to node %d is larger than the allowed number of", i);
 					printf("\n muscles connected to a single node.");
 					printf("\n If this is not a mistake increase MUSCLES_PER_NODE in the header.h file.");
-					printf("\n The simulation has been terminated.\n\n");
+					printf("\n The simulation has been terminated.\n");
 					exit(0);
 				}
 				Node[i].muscle[k] = j;
@@ -729,7 +719,7 @@ double findAverageRadiusOfObject()
 	}
 
 	averageRadius = totalRadius/NumberOfNodes;
-	printf(" The average radius of the object is %f mm\n", averageRadius); // The average radius for RealisticLA is around 25.8 mm
+	printf("\n The average radius of the object is %f mm\n", averageRadius); // The average radius for RealisticLA is around 25.8 mm
 	return averageRadius;
 }
 
@@ -788,7 +778,8 @@ void setReferencePoints()
 	}
 	if(upId == -1)
 	{
-		printf("\n\n Error: Could not find ReferenceUpNode. Simulation is terminated!");
+		printf("\n Error: Could not find ReferenceUpNode.");
+		printf("\n The Simulation has been terminated!\n");
 		exit(0);
 	}
 	
@@ -812,7 +803,8 @@ void setReferencePoints()
 	}
 	if(backId == -1)
 	{
-		printf("\n\n Error: Could not find ReferenceBackNode. Simulation is terminated\n\n");
+		printf("\n Error: Could not find ReferenceBackNode.");
+		printf("\n The Simulation has been terminated!\n");
 		exit(0);
 	}
 	
@@ -821,34 +813,7 @@ void setReferencePoints()
 	ReferenceBackNode = backId;
 	ReferenceCenter = center;
 	
-	printf("\n ReferenceUpNode, ReferenceBackNode, and  ReferenceCenter have been set.\n\n");
-}
-
-
-// This enables or disables the spherical node selector and sets the isInMouseFunctionMode flag.
-void toggleNodeSelector(simulationSwitchesStructure* sim, int mode) 
-{
-	if (mode == MouseModeOff) //turn on cursor if mouse functions are off, turn off cursor if mouse functions are on
-	{
-		// TODO: the functionality of this parameter can probably be checked by just seeing if mode == -1
-		// That is, instead of checking Simulation.isInMouseFunctionMode, we can just check if mode == MouseModeOff, which is -1. 
-		// This would remove the need for isInMouseMode entirely, but that is a later fix.
-		// Will need to figure out where this bool is used to determine if removing it is worth it.
-		sim->isInMouseFunctionMode = false; 
-		glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); // Set cursor to default arrow.
-	} 
-	else 
-	{
-		sim->isInMouseFunctionMode = true;
-		glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	}
-}
-
-// Sets the simulation's mouse mode toggles the node se
-void setMouseMode(simulationSwitchesStructure* sim, int mode)
-{
-	sim->mouseMode = mode;
-	toggleNodeSelector(sim, mode);	
+	printf("\n ReferenceUpNode, ReferenceBackNode, and  ReferenceCenter have been set.\n");
 }
 
 void assignNodes(float3 mousePos, int nodeType)
@@ -1015,7 +980,7 @@ void setView(int view)
 	}
 	else
 	{
-		printf("\n Undefined view reverting back to Ref view.");
+		printf("\n Undefined view reverting back to Ref view.\n");
 		ReferenceView();
 		strcpy(ViewName, "Ref");
 	}
@@ -1367,7 +1332,7 @@ void screenShot()
 	pclose(ScreenShotFile);
 	free(buffer);
 	
-	strcpy(SubGUIMessage, "Screen Shot saved");
+	strcpy(SubGUIMessage, "Screenshot Saved");
 	printf("\nScreenshot Captured: \n");
 }
 
@@ -1386,7 +1351,6 @@ void reshapeCallback(GLFWwindow* window, int width, int height)
 }
 
 /*
-
  OpenGL callback when a key is pressed.
  It's actions are: GLFW_PRESS, GLFW_REPEAT, and GLFW_RELEASE.
 */
@@ -1399,31 +1363,22 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 	// Tab always toggles GUI mode <-> mouse mode, even when GUI currently has focus.
 	if(action == GLFW_PRESS && key == GLFW_KEY_TAB)
 	{
-		if (Simulation.isInMouseFunctionMode)
+		if (Simulation.isInMouseFunctionMode == true)
 		{
 			Simulation.isInMouseFunctionMode = false;
 			Simulation.guiCollapsed = false;
-			setMouseMode(&Simulation, MouseModeOff);
+			Simulation.mouseMode = NodeTypeStandardLA;
 			glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
 		else
 		{
 			Simulation.isInMouseFunctionMode = true;
 			Simulation.guiCollapsed = true;
-			if(Simulation.mouseMode == MouseModeOff)
-			{
-				Simulation.mouseMode = MouseModeStandardLA;
-			}
-			setMouseMode(&Simulation, Simulation.mouseMode);
+			Simulation.mouseMode = NodeTypeStandardLA;
 			glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		}
 		return;
 	}
-	
-	if(key == GLFW_KEY_S && action == GLFW_PRESS)
-        {
-        	screenShot();
-        }
         
         // X-axis Translations and Rotations
         if(key == GLFW_KEY_X && (action == GLFW_PRESS || action == GLFW_REPEAT))
@@ -1511,7 +1466,6 @@ void mousePassiveMotionCallback(GLFWwindow* window, double x, double y)
 		
 	}
 	
-	// TODO: There should probably be a slider in the GUI for this.
 	float sensitivityMultiplier = 1.2; // Sensitivity multiplier for mouse movement
 	MouseX = ( 2.0*x/XWindowSize - 1.0)*RadiusOfLeftAtrium *sensitivityMultiplier;
 	MouseY = (-2.0*y/YWindowSize + 1.0)*RadiusOfLeftAtrium *sensitivityMultiplier;
@@ -1533,8 +1487,7 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 	{
 		float3 mousePos = {(float)MouseX, (float)MouseY, (float)MouseZ};
 		if(button == GLFW_MOUSE_BUTTON_LEFT)
-		{
-			if(Simulation.mouseMode == MouseModeOff) return; // If mouse mode is off, do nothing on left click	
+		{	
 			if(Simulation.mouseMode == MouseModePulseNode)
 			{
 				int nodeId = findClosestNodeToMouse(mousePos);
@@ -1645,14 +1598,14 @@ void createGUI()
 		else
 		{
 			ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "Mouse Mode");
-			     if (Simulation.mouseMode == MouseModeStandardLA) ImGui::TextUnformatted("Section: Standard");
-			else if (Simulation.mouseMode == MouseModeBachmannsBundle) ImGui::TextUnformatted("Section: Bachmann's Bundle");
-			else if (Simulation.mouseMode == MouseModeAppendage) ImGui::TextUnformatted("Section: Appendage");
-			else if (Simulation.mouseMode == MouseModeScarTissue) ImGui::TextUnformatted("Section: Scar Tissue");
-			else if (Simulation.mouseMode == MouseModePulmonaryVeins) ImGui::TextUnformatted("Section: Pulmonary Veins");
-			else if (Simulation.mouseMode == MouseModeMitralValve) ImGui::TextUnformatted("Section: Mitral Valve");
-			else if (Simulation.mouseMode == MouseModePulseNode) ImGui::TextUnformatted("Section: Pulse Node");
-			else if (Simulation.mouseMode == MouseModeBackTop) ImGui::TextUnformatted("Section: Back/Top Nodes");
+			     if (Simulation.mouseMode == MouseModeStandardLA) ImGui::TextUnformatted("Select: StandardLA");
+			else if (Simulation.mouseMode == MouseModeBachmannsBundle) ImGui::TextUnformatted("Select: Bachmann's Bundle");
+			else if (Simulation.mouseMode == MouseModeAppendage) ImGui::TextUnformatted("Select: LA Appendage");
+			else if (Simulation.mouseMode == MouseModeScarTissue) ImGui::TextUnformatted("Select: Scar Tissue");
+			else if (Simulation.mouseMode == MouseModePulmonaryVeins) ImGui::TextUnformatted("Select: Pulmonary Veins");
+			else if (Simulation.mouseMode == MouseModeMitralValve) ImGui::TextUnformatted("Select: Mitral Valve");
+			else if (Simulation.mouseMode == MouseModePulseNode) ImGui::TextUnformatted("Select: Pulse Node");
+			else if (Simulation.mouseMode == MouseModeBackTop) ImGui::TextUnformatted("Select: Reference Nodes");
 			else ImGui::TextUnformatted("Section: None");
 		}
 		ImGui::TextUnformatted("Tab: Toggle GUI/Mouse mode");
@@ -1664,7 +1617,7 @@ void createGUI()
 	ImGui::End();
 
 	// Mouse mode hides the control panel to match model behavior.
-	if (Simulation.isInMouseFunctionMode)
+	if(Simulation.isInMouseFunctionMode == true)
 	{
 		return;
 	}
@@ -1773,60 +1726,88 @@ void createGUI()
 		if (ImGui::CollapsingHeader("Mouse Functions", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			// Mouse mode buttons
-			// TODO: Implement the mouse mode defines here.
-			if (ImGui::Button("Mouse Off"))
-			{
-				setMouseMode(&Simulation, MouseModeOff); 
-			}
-			ShowTooltip("Clears the mouse's mode.");
+			MouseX = 0.0; // Centering the mouse sphere.
+			MouseY = 0.0;
+			
 			if (ImGui::Button("Set Pulse Node")) 
 			{
-				setMouseMode(&Simulation, MouseModePulseNode); 
+				Simulation.mouseMode = MouseModePulseNode;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
-
+			ShowTooltip("Sets the pulse node.");
+			
 			if (ImGui::Button("Set Reference point & Nodes")) 
 			{
-				setMouseMode(&Simulation, MouseModeBackTop); 
+				Simulation.mouseMode = MouseModeBackTop;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
 
 			if (ImGui::Button("Set Standard LA Node")) 
 			{
-				setMouseMode(&Simulation, MouseModeStandardLA); 
+				Simulation.mouseMode = NodeTypeStandardLA;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
 
 			if (ImGui::Button("Set Bachmann's Bundle")) 
 			{
-				setMouseMode(&Simulation, MouseModeBachmannsBundle);
+				Simulation.mouseMode = MouseModeBachmannsBundle;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
 			
 			if (ImGui::Button("Set Appendage")) 
 			{
-				setMouseMode(&Simulation, MouseModeAppendage);
+				Simulation.mouseMode = MouseModeAppendage;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
 			
 			if (ImGui::Button("Set Scar Tissue")) 
 			{
-				setMouseMode(&Simulation, MouseModeScarTissue); 
+				Simulation.mouseMode = MouseModeScarTissue;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
 
 			if (ImGui::Button("Set Pulmonary Veins")) 
 			{
-				setMouseMode(&Simulation, MouseModePulmonaryVeins); 
+				Simulation.mouseMode = MouseModePulmonaryVeins;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
 
 			if (ImGui::Button("Set Mitral Valve")) 
 			{
-				setMouseMode(&Simulation, MouseModeMitralValve); 
+				Simulation.mouseMode = MouseModeMitralValve;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
 			
 			if (ImGui::Button("Set Back Wall")) 
 			{
-				setMouseMode(&Simulation, MouseModeBackWall); 
+				Simulation.mouseMode = MouseModeBackWall;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
 			
 			if (ImGui::Button("Set Extra Tissue")) 
 			{
-				setMouseMode(&Simulation, MouseModeExtraTissue); 
+				Simulation.mouseMode = MouseModeExtraTissue;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
 
 		}
@@ -1838,7 +1819,7 @@ void createGUI()
 			{
 				saveBinary();
 			}
-			if (ImGui::Button("Screen Shot"))
+			if (ImGui::Button("Screenshot"))
 			{
 				screenShot();
 			}
@@ -1856,6 +1837,8 @@ void createGUI()
 			ImGui::Text("Rotate X-axis: Ctrl x/X");
 			ImGui::Text("Rotate Y-axis: Ctrl y/Y");
 			ImGui::Text("Rotate Z-axis: Ctrl z/Z");
+			ImGui::NewLine(); //added a new line for spacing
+			ImGui::Text("Selection Sphere Size Adjustment: +/-");
 			ImGui::NewLine(); //added a new line for spacing
 			ImGui::Text("Toggle GUI/Mouse mode: Tab");			
 		}
@@ -1886,7 +1869,7 @@ float4 findCenterOfObject()
 	if(centerOfObject.w < 1.0)
 	{
 		printf("\n There seems to be no nodes.");
-		printf("\n The simulation has been terminated to stop divition by zero.\n\n");
+		printf("\n The simulation has been terminated to stop divition by zero.\n");
 		exit(0);
 	}
 	else
@@ -2098,8 +2081,8 @@ int getTypePriority(int type)
 	if(type == NodeTypeExtraTissue) return 8;
 	else
 	{
-		printf("\n\n Unknown node type while setting type priority.");
-		printf("\n Simulation has been terminated.");
+		printf("\n Error: Unknown node type while setting type priority.");
+		printf("\n Simulation has been terminated.\n");
 		exit(0);
 	}
 }
@@ -2120,8 +2103,8 @@ float4 getColorFromType(int type)
 	if(type == NodeTypeExtraTissue) return ColorExtraTissue;
 	else
 	{
-		printf("\n\n Unknown node type while setting type colors.");
-		printf("\n Simulation has been terminated.");
+		printf("\n Error: Unknown node type while setting type colors.");
+		printf("\n Simulation has been terminated.\n");
 		exit(0);
 	}
 }
@@ -2155,7 +2138,7 @@ const char *getTimeStamp(void)
 */
 void shutdownAndCleanup()
 {
-	//delete the state file if it exists. BMW I do not think we need this.
+	//delete the state file if it exists.
 	remove("simulation_state.bin");
 	
 	// Free memory

@@ -104,8 +104,6 @@ const float4 ColorBackWall = {0.0f, 1.0f, 0.0f, 0.0f}; // Green for back wall no
 const float4 ColorExtraTissue = {0.6f, 0.6f, 0.6f, 0.0f}; // Gray for extra tissue nodes and muscles by default.
 
 // Mouse modes, which will use the same int values as the node types for simplicity, but with -1 for off mode.
-// BMW check if this is even needed !!!
-const int MouseModeOff = -1;
 const int MouseModeStandardLA = NodeTypeStandardLA;
 const int MouseModeBachmannsBundle = NodeTypeBachmannBundle;
 const int MouseModeAppendage = NodeTypeAppendage;
@@ -241,7 +239,7 @@ void readMusclesFromRawFile(); //Done
 void readNodesAndMusclesFromBinaryFile(); //Done
 
 // File Output Functions
-void saveBinary();
+void saveBinary(); //done
 
 // Setup Functions
 void setup();
@@ -252,8 +250,6 @@ void setMuscleNaturalLength(); //done
 
 // User Action Functions
 void setReferencePoints();//done
-void toggleNodeSelector(simulationSwitchesStructure*, int);
-void setMouseMode(simulationSwitchesStructure*, int);
 void assignNodes(float3, int);
 
 // View Functions

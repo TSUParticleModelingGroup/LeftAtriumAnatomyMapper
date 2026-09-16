@@ -573,7 +573,8 @@ void setup()
 	MouseZ = RadiusOfLeftAtrium;
 	MouseX = 0.0;
 	MouseY = 0.0;
-	MouseSelectionRadiusMultiplier = 0.1;
+	MouseSelectionRadius = 0.1*RadiusOfLeftAtrium;
+	
 	
 	// Scroll wheel speeds and toggle.
 	ScrollSpeedToggle = 1;
@@ -816,6 +817,12 @@ void setReferencePoints()
 	printf("\n ReferenceUpNode, ReferenceBackNode, and  ReferenceCenter have been set.\n");
 }
 
+/*
+ This function:
+ Runs through all nodes and tests to see if they are in a sphere of radius ??????, centered at the current mouse position.
+ If it is, that node and the muscles it is connected to are set with the selected type and color.
+*/
+
 void assignNodes(float3 mousePos, int nodeType)
 {
 	for(int i = 0; i < NumberOfNodes; i++)
@@ -826,7 +833,7 @@ void assignNodes(float3 mousePos, int nodeType)
 			Node[i].color = getColorFromType(nodeType);
 			for(int j = 0; j < MUSCLES_PER_NODE; j++)
 			{
-				if(Node[i].muscle[j] != -1)
+				if(Node[i].muscle[j] != -1) // If this is -1 it just means that this node is not connect to any more muscles past the previous j value.
 				{
 					Muscle[Node[i].muscle[j]].color = getColorFromType(nodeType);
 				}
@@ -1134,7 +1141,7 @@ void createImage()
 		glColor3d(1.0,1.0,1.0);
 		glPushMatrix();
 		glTranslatef(MouseX, MouseY, MouseZ);	
-		renderSphere(MouseSelectionRadiusMultiplier*RadiusOfLeftAtrium,20,20);
+		renderSphere(MouseSelectionRadius,20,20);
 		glPopMatrix();
 	}
 }
@@ -1361,7 +1368,7 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 	dx = dy = dz = 0.01*RadiusOfLeftAtrium;
 	
 	// Tab always toggles GUI mode <-> mouse mode, even when GUI currently has focus.
-	if(action == GLFW_PRESS && key == GLFW_KEY_TAB)
+	if(key == GLFW_KEY_TAB && action == GLFW_PRESS)
 	{
 		if (Simulation.isInMouseFunctionMode == true)
 		{
@@ -1407,35 +1414,29 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 		else translateObject(0.0, 0.0, -dz);
         }
         
+        // Mouse selection area adjustment increase.
+        if(key == GLFW_KEY_KP_ADD && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        {
+        	MouseSelectionRadius *= 1.01f;
+        }
+        
+        // Mouse selection area adjustment decrease.
+        if(key == GLFW_KEY_KP_SUBTRACT && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        {
+        	MouseSelectionRadius *= 0.99f;
+		if(MouseSelectionRadius <= (0.01*RadiusOfLeftAtrium)) MouseSelectionRadius = 0.01*RadiusOfLeftAtrium;
+        }
+        
+        // Kill the program.
+        if(key == GLFW_KEY_ESCAPE)
+        {
+        	Run = 0;
+        }
+        
 	// See if GUI wants this event (prevents shortcuts while typing in text fields).
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.WantCaptureKeyboard)
         return;
-
-	// Only process key press events, not releases or repeats
-
-	if (action != GLFW_PRESS) return;
-
-	// Check for specific key presses
-	switch (key)
-	{
-		case GLFW_KEY_ESCAPE: // Escape key to exit
-			Run = 0;
-			break;
-
-		case GLFW_KEY_KP_SUBTRACT: // Decrease selector size
-			MouseSelectionRadiusMultiplier -= 0.01f;
-			if(MouseSelectionRadiusMultiplier < 0.01f) MouseSelectionRadiusMultiplier = 0.01f;
-			break;
-
-		case GLFW_KEY_KP_ADD: // Increase selector size
-			MouseSelectionRadiusMultiplier += 0.025f;
-			if(MouseSelectionRadiusMultiplier > 0.5f) MouseSelectionRadiusMultiplier = 0.5f;
-			break;
-		default: // For any other key, do nothing
-			break;
-
-	}
 }
 
 /*
@@ -1536,6 +1537,7 @@ void scrollWheelCallback(GLFWwindow* window, double xoffset, double yoffset)
 	bool ctrlHeld = (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS);
 
 	// Ctrl + scroll adjusts selector size to match model-side workflow.
+	/*
 	if(ctrlHeld)
 	{
 		if(yoffset > 0)
@@ -1559,6 +1561,15 @@ void scrollWheelCallback(GLFWwindow* window, double xoffset, double yoffset)
 		{
 			MouseZ += ScrollSpeed;
 		}
+	}
+	*/
+	if(yoffset > 0) // Scroll up
+	{
+		MouseZ -= ScrollSpeed;
+	}
+	else if(yoffset < 0) // Scroll down
+	{
+		MouseZ += ScrollSpeed;
 	}
 }
 
@@ -2026,13 +2037,12 @@ void setAllMuscleTypesAndColors()
 */
 bool isNodeInMouseSphere(int nodeId, float3 mousePos) 
 {
-	float dx, dy,dz, d2, hit2;
-	hit2 = MouseSelectionRadiusMultiplier * MouseSelectionRadiusMultiplier * RadiusOfLeftAtrium * RadiusOfLeftAtrium;
+	float dx, dy,dz, d2;
 	dx = Node[nodeId].position.x - mousePos.x;
 	dy = Node[nodeId].position.y - mousePos.y; 
 	dz = Node[nodeId].position.z - mousePos.z; 
 	d2 = dx*dx + dy*dy + dz*dz;
-	if(d2 < hit2) return true;
+	if(d2 < MouseSelectionRadius*MouseSelectionRadius) return true;
 	else return false;
 }
 
@@ -2042,19 +2052,19 @@ bool isNodeInMouseSphere(int nodeId, float3 mousePos)
 */
 int findClosestNodeToMouse(float3 mousePos)
 {
+	float dx, dy,dz, d2;
 	int closestNode = -1;
 	float closestDistSquared = FLOATMAX;
-	float hitRadiusSquared = MouseSelectionRadiusMultiplier * MouseSelectionRadiusMultiplier * RadiusOfLeftAtrium * RadiusOfLeftAtrium;
 
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
-		float dx = Node[i].position.x - mousePos.x;
-		float dy = Node[i].position.y - mousePos.y;
-		float dz = Node[i].position.z - mousePos.z;
-		float distSquared = dx*dx + dy*dy + dz*dz;
-		if(distSquared < hitRadiusSquared && distSquared < closestDistSquared)
+		dx = Node[i].position.x - mousePos.x;
+		dy = Node[i].position.y - mousePos.y;
+		dz = Node[i].position.z - mousePos.z;
+		d2 = dx*dx + dy*dy + dz*dz;
+		if(d2 < MouseSelectionRadius*MouseSelectionRadius && d2 < closestDistSquared)
 		{
-			closestDistSquared = distSquared;
+			closestDistSquared = d2;
 			closestNode = i;
 		}
 	}

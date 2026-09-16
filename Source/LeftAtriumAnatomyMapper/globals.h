@@ -103,7 +103,7 @@ const float4 ColorMitralValve = {0.5f, 0.0f, 0.5f, 0.0f}; // Purple for mitral v
 const float4 ColorBackWall = {0.0f, 1.0f, 0.0f, 0.0f}; // Green for back wall nodes and muscles by default.
 const float4 ColorExtraTissue = {0.6f, 0.6f, 0.6f, 0.0f}; // Gray for extra tissue nodes and muscles by default.
 
-// Mouse modes, which will use the same int values as the node types for simplicity, but with -1 for off mode.
+// Mouse modes, which will use the same int values as the node types for simplicity.
 const int MouseModeStandardLA = NodeTypeStandardLA;
 const int MouseModeBachmannsBundle = NodeTypeBachmannBundle;
 const int MouseModeAppendage = NodeTypeAppendage;
@@ -112,8 +112,13 @@ const int MouseModePulmonaryVeins = NodeTypePulmonaryVeins;
 const int MouseModeMitralValve = NodeTypeMitralValve;
 const int MouseModeBackWall = NodeTypeBackWall;
 const int MouseModeExtraTissue = NodeTypeExtraTissue;
-const int MouseModePulseNode = 100; //BMW
-const int MouseModeBackTop = 101; //BMW
+// This is not selecting a tissue type. It for selecting a single node to initiate the pulse. 
+// 100 is just a number to disiguish it from the other Mouse modes.
+const int MouseModePulseNode = 100; 
+// This is not selecting a tissue type. It for selecting a reference view, which all other views
+// are generated from. 
+// 101 is just a number to disiguish it from the other Mouse modes.
+const int MouseModeBackTop = 101;
 
 // How many nodes and muscle the simulation contains.
 // They are read in form the Raw or Bin files. 
@@ -132,8 +137,9 @@ muscleAttributesStructure *Muscle;
 simulationSwitchesStructure Simulation;
 
 // To use VBOs for sphere rendering.
-// Vertex Buffer Object and Index Buffer Object for sphere rendering, Vertex is the sphere's vertices and Index is the order in which to draw them.
-// BMW not sure how these are initialized.
+// Vertex Buffer Object and Index Buffer Object for sphere rendering, 
+// Vertex is the sphere's vertices and Index is the order in which to draw them.
+// They are initialized in the function glGenBuffers(int, &GLuint);
 GLuint SphereVBO, SphereIBO; 
 // Number of vertices and indices in the sphere geometry
 // They are initialized in the function createSphereVBO(float, int, int).
@@ -142,7 +148,7 @@ GLuint NumSphereVertices, NumSphereIndices;
 // This is the node where the beat initiates from. 
 // It is initially read in from the Raw nodes file or the bin file but can be changed in the simulation.
 // It is set to -1 here for error catching.
-int PulsePointNode = -1; // Set to -1 to flag it if it is used before it is set.
+int PulsePointNode = -1;
 
 // These are the reference nodes and center point used to orient the object.
 // If the data is loaded from a raw node file, ReferenceUpNode and
@@ -167,16 +173,21 @@ char ViewName[256] = "no view set";
 char SubGUIMessage[512] = "";
 
 // These are all the globals that are read in from the ConfigSetup.
-char NodesMusclesFileName[256];
-float LineWidth;
-float NodeRadiusAdjustment;
-float NodePointSize;
-float4 BackGroundColor;
+// They are initialize here to bogus value for error checking.
+char NodesMusclesFileName[256] = "";
+float LineWidth = -1.0;
+float NodeRadiusAdjustment = -1.0;
+float NodePointSize = -1.0;
+float4 BackGroundColor = {1.0f, 1.0f, 1.0f, 0.0f};
 
 // This holds the average radius of the object which is use to scale the size of everything.
 // It is calculated in findAverageRadiusOfObject().
 // It is initialized to -1.0 for error checking.
 double RadiusOfLeftAtrium = -1.0;
+
+// This holds the selection radius around the mouse for selecting nodes. It is initialized in setup().
+// It is initialized to -1.0 here for error checking.
+double MouseSelectionRadius = -1.0;
 
 // Variable that holds mouse locations to be translated into center of the selection sphere.
 // They are initialized in setup().
@@ -184,7 +195,7 @@ double MouseX, MouseY, MouseZ;
 
 // Variable that holds a number that is multiplied by the RadiusOfLeftAtrium to create the radius of the selection sphere.
 // It is initialized in setup().
-float MouseSelectionRadiusMultiplier; // Adjusts how big of a region the mouse covers when you are selecting with it.
+//float MouseSelectionRadiusMultiplier;
 
 // Variables that are used to adjust the scroll speed of the mouse.
 // Pressing the center mouase button will toggle you between a fast and slow scroll speed.

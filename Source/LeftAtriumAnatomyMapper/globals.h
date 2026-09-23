@@ -83,19 +83,27 @@ typedef struct
 
 // ******************************************** Globals ******************************************
 
-// Node types: Assigns a number for the different types of tissue. They are set here.
-const int TypeStandardLA = 0;
+// Node types: Assigns a number for the different types of tissue. 
+// The oder of the number they are assigned is also very important.
+// This is the priority that is used to break a tie if a muscle connects
+// two different tpyes of nodes. For example if a muscle connects a
+// member of the Bachmann's bundle to say a node of standard LA tissue
+// the muscle should act like a Bachmann's bundle musle not a standard muscle.
+// In the priority assignment the smaller number is the most important.
+// They are set here.
 const int TypeBachmannBundle = 1;
-const int TypeAppendage = 2;
-const int TypeScarTissue = 3;
-const int TypePulmonaryVeins = 4;
-const int TypeMitralValve = 5;
-const int TypeBackWall = 6;
-const int TypeExtraTissue = 7;
+const int TypePulmonaryVeins = 2;
+const int TypeBackWall = 3;
+const int TypeMitralValve = 4;
+const int TypeAppendage = 5;
+const int TypeStandardLA = 6;
+const int TypeScarTissue = 7;
+const int TypeExtraTissue = 8;
 // This is not a tissue type it is where we initiate the beat.
 // The tissue type of the pulseNode is BacchannBundle 
 // This node just has the extra task of oracstrating the beat.
-// We set it to be 100 so we can add addition tissue types in the future as needed.
+// We set it to be 100 so we can add addition tissue types above it 
+// in the future as needed.
 const int TypePulseNode = 100;
 
 // Color types: Assigns a color to each of the tissue type. They are set here.
@@ -261,7 +269,6 @@ void setSingleMuscleTypeAndColor(int); //done
 void setAllMuscleTypesAndColors(); //done
 bool isNodeInMouseSphere(int, float3); //done
 int findClosestNodeToMouse(float3); //done
-int getTypePriority(int); //done
 float4 getColorFromType(int); //done
 const char *getTimeStamp(); //done
 void shutdownAndCleanup(); //done

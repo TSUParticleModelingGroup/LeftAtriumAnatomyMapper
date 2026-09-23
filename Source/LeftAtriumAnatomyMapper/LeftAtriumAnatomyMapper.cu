@@ -247,9 +247,9 @@ void readNodesFromRawFile()
 		Node[i].color.w = 0.0;
 		
 		// Setting the type to 0 for all nodes. Type 0 is for a general LA node, which is what all nodes start out as.
-		Node[i].type = 0; 
+		Node[i].type = TypeStandardLA; 
 		
-		// Sets all the muscle a node can connect to as -1 which indicates that not muscle is connect at this time.
+		// Sets all the muscle a node can connect to as -1 which indicates that no muscle is connect at this time.
 		for(int j = 0; j < MUSCLES_PER_NODE; j++)
 		{
 			Node[i].muscle[j] = -1; 
@@ -310,7 +310,7 @@ void readMusclesFromRawFile()
 	// 4: Setting all muscles to their default settings; 
 	for(int i = 0; i < NumberOfMuscles; i++)
 	{
-		Muscle[i].type = 0;
+		Muscle[i].type = TypeStandardLA;
 		Muscle[i].nodeA = -1;
 		Muscle[i].nodeB = -1;
 		Muscle[i].naturalLength = -1.0; 
@@ -327,7 +327,6 @@ void readMusclesFromRawFile()
 			printf("\n The simulation has been terminated.\n");
 			exit(0);
 		}
-		
 		if(id < 0 || NumberOfMuscles <= id)
 		{
 			printf("\n Error: You are trying to create a muscle that is out of bounds.");
@@ -341,7 +340,6 @@ void readMusclesFromRawFile()
 			printf("\n The simulation has been terminated.\n");
 			exit(0);
 		}
-		Muscle[id].type = 0;  // Default to LA muscle.
 		Muscle[id].nodeA = idNode1;
 		Muscle[id].nodeB = idNode2;
 	}
@@ -1225,17 +1223,18 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 					Node[nodeId].type = TypeBachmannBundle;
 					Node[nodeId].color = getColorFromType(TypeBachmannBundle);
 					PulsePointNode = nodeId;
-					setAllMuscleTypesAndColors();
 				}
 			}
 			else
 			{
 				assignNodes(mousePos, Simulation.mouseMode);
 			}
+			setAllMuscleTypesAndColors();
 		}
 		else if(button == GLFW_MOUSE_BUTTON_RIGHT) // Right Mouse button down
 		{
 			assignNodes(mousePos, TypeStandardLA);
+			setAllMuscleTypesAndColors();
 		}
 		else if(button == GLFW_MOUSE_BUTTON_MIDDLE)
 		{
@@ -1269,21 +1268,6 @@ void scrollWheelCallback(GLFWwindow* window, double xoffset, double yoffset)
 }
 
 //******************* Graphical User Interface Functions ***********************************************
-
-/*
- This function:
- Adds a comment below whatever button it is placed below. The format is below.
- ShowTooltip("Bla Bla");
-*/
-static inline void ShowTooltip(const char* text)
-{
-	if (ImGui::IsItemHovered())
-	{
-		ImGui::BeginTooltip();
-		ImGui::TextUnformatted(text);
-		ImGui::EndTooltip();
-	}
-}
 
 void createGUI()
 {
@@ -1386,16 +1370,6 @@ void createGUI()
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
-			ShowTooltip("Sets the pulse node.");
-			
-			if (ImGui::Button("Set Standard LA Node")) 
-			{
-				Simulation.mouseMode = TypeStandardLA;
-				Simulation.isInMouseFunctionMode = true;
-				Simulation.guiCollapsed = true;
-				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
-			}
-
 			if (ImGui::Button("Set Bachmann's Bundle")) 
 			{
 				Simulation.mouseMode = TypeBachmannBundle;
@@ -1403,23 +1377,6 @@ void createGUI()
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
-			
-			if (ImGui::Button("Set Appendage")) 
-			{
-				Simulation.mouseMode = TypeAppendage;
-				Simulation.isInMouseFunctionMode = true;
-				Simulation.guiCollapsed = true;
-				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
-			}
-			
-			if (ImGui::Button("Set Scar Tissue")) 
-			{
-				Simulation.mouseMode = TypeScarTissue;
-				Simulation.isInMouseFunctionMode = true;
-				Simulation.guiCollapsed = true;
-				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
-			}
-
 			if (ImGui::Button("Set Pulmonary Veins")) 
 			{
 				Simulation.mouseMode = TypePulmonaryVeins;
@@ -1427,15 +1384,6 @@ void createGUI()
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
-
-			if (ImGui::Button("Set Mitral Valve")) 
-			{
-				Simulation.mouseMode = TypeMitralValve;
-				Simulation.isInMouseFunctionMode = true;
-				Simulation.guiCollapsed = true;
-				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
-			}
-			
 			if (ImGui::Button("Set Back Wall")) 
 			{
 				Simulation.mouseMode = TypeBackWall;
@@ -1443,7 +1391,27 @@ void createGUI()
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
-			
+			if (ImGui::Button("Set Mitral Valve")) 
+			{
+				Simulation.mouseMode = TypeMitralValve;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
+			}
+			if (ImGui::Button("Set Appendage")) 
+			{
+				Simulation.mouseMode = TypeAppendage;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
+			}
+			if (ImGui::Button("Set Scar Tissue")) 
+			{
+				Simulation.mouseMode = TypeScarTissue;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
+			}
 			if (ImGui::Button("Set Extra Tissue")) 
 			{
 				Simulation.mouseMode = TypeExtraTissue;
@@ -1451,7 +1419,13 @@ void createGUI()
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
-
+			if (ImGui::Button("Set Standard LA Node")) 
+			{
+				Simulation.mouseMode = TypeStandardLA;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
+			}
 		}
 	    
 		// Utility functions
@@ -1643,9 +1617,10 @@ void setSingleMuscleTypeAndColor(int muscleId)
 	}
 	else
 	{
-		int priorityA = getTypePriority(typeA);
-		int priorityB = getTypePriority(typeB);
-		if(priorityA < priorityB) 
+		//int priorityA = getTypePriority(typeA);
+		//int priorityB = getTypePriority(typeB);
+		//if(priorityA < priorityB) 
+		if(typeA < typeB)
 		{
 			Muscle[muscleId].type = typeA;
 			Muscle[muscleId].color = getColorFromType(typeA);
@@ -1712,32 +1687,6 @@ int findClosestNodeToMouse(float3 mousePos)
 
 /*
  This function:
- Returns priority for a node type when resolving mixed-type muscles.
- Returns -1 for unknown types.
- Put an integer behind each type with smallest number being the most important
- and largest being the least important. If you need to add a new type just place it in
- the list and arange the priority.
-*/
-int getTypePriority(int type)
-{
-	if(type == TypeStandardLA) return 7;
-	if(type == TypeBachmannBundle) return 1;
-	if(type == TypeAppendage) return 3;
-	if(type == TypeScarTissue) return 6;
-	if(type == TypePulmonaryVeins) return 2;
-	if(type == TypeMitralValve) return 4;
-	if(type == TypeBackWall) return 5;
-	if(type == TypeExtraTissue) return 8;
-	else
-	{
-		printf("\n Error: Unknown node type while setting type priority.");
-		printf("\n Simulation has been terminated.\n");
-		exit(0);
-	}
-}
-
-/*
- This function:
  Returns the color for given type.
 */
 float4 getColorFromType(int type)
@@ -1752,7 +1701,7 @@ float4 getColorFromType(int type)
 	if(type == TypeExtraTissue) return ColorExtraTissue;
 	else
 	{
-		printf("\n Error: Unknown node type while setting type colors.");
+		printf("\n Error: Unknown node type %d while setting type colors.", type);
 		printf("\n Simulation has been terminated.\n");
 		exit(0);
 	}

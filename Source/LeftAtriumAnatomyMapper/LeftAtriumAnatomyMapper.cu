@@ -9,28 +9,6 @@ int main(int argc, char** argv)
 {
 	setup();
 	
-	XWindowSize = 1800; //1800
-	YWindowSize = 1000; //1000
-
-	// Clip plains
-	Near = 2.0; //0.2;
-	Far = 400.0; //80.0*RadiusOfLeftAtrium;
-
-	//Where your eye is located. It is important that this is a positive number, as the camera looks down the negative z axis. 
-	EyeX = 0.0*RadiusOfLeftAtrium;
-	EyeY = 0.0*RadiusOfLeftAtrium;
-	EyeZ = 2.0*RadiusOfLeftAtrium; 
-
-	//Where you are looking
-	CenterX = 0.0;
-	CenterY = 0.0;
-	CenterZ = 0.0;
-
-	//Up vector for viewing
-	UpX = 0.0;
-	UpY = 1.0;
-	UpZ = 0.0;
-
 	if(!glfwInit()) // Initialize GLFW, check for failure
 	{
         	printf("\n Error: Failed to initialize GLFW\n");
@@ -64,7 +42,7 @@ int main(int argc, char** argv)
 
 	glfwSetInputMode(Window, GLFW_STICKY_KEYS, GLFW_TRUE);
 
-	//these set up our callbacks, most have been changed to adapters until GUI is implemented
+	// These set up our callbacks, most have been changed to adapters until GUI is implemented
 	glfwSetFramebufferSizeCallback(Window, reshapeCallback);  //sets the callback for the window resizing
 	glfwSetCursorPosCallback(Window, mousePassiveMotionCallback); //sets the callback for the cursor position
 	glfwSetMouseButtonCallback(Window, myMouseCallback); //sets the callback for the mouse clicks
@@ -121,9 +99,7 @@ int main(int argc, char** argv)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-
 	//*****************************************End GUI Setup********************************
-
 
 	createSphereVBO(NodeRadiusAdjustment * RadiusOfLeftAtrium, 10, 10); //the first arg was the radius used in the draw nodes flag
 
@@ -252,11 +228,6 @@ void readNodesFromRawFile()
 	// 2: Reading the header information.
 	fscanf(inFile, "%d", &NumberOfNodes);
 	printf("\n NumberOfNodes = %d", NumberOfNodes);
-	fscanf(inFile, "%d", &PulsePointNode);
-	fscanf(inFile, "%d", &ReferenceUpNode);
-	fscanf(inFile, "%d", &ReferenceBackNode);
-	ReferencePointNode = ReferenceBackNode;
-	
 	
 	// 3: Allocating memory for the nodes. 
 	Node = (nodeAttributesStructure*)malloc(NumberOfNodes*sizeof(nodeAttributesStructure));
@@ -343,7 +314,7 @@ void readMusclesFromRawFile()
 		Muscle[i].nodeA = -1;
 		Muscle[i].nodeB = -1;
 		Muscle[i].naturalLength = -1.0; 
-		Muscle[id].color = ColorStandardLA;
+		Muscle[i].color = ColorStandardLA;
 	}
 	
 	// Reading in from raw file what two nodes the muscle connects.
@@ -413,10 +384,6 @@ void readNodesAndMusclesFromBinaryFile()
 	fread(&NumberOfNodes, sizeof(int), 1, inFile);
 	fread(&NumberOfMuscles, sizeof(int), 1, inFile);
 	fread(&PulsePointNode, sizeof(int), 1, inFile);
-	fread(&ReferenceUpNode, sizeof(int), 1, inFile);
-	fread(&ReferenceBackNode, sizeof(int), 1, inFile); 
-	fread(&ReferencePointNode, sizeof(int), 1, inFile);
-	fread(&ReferenceCenter, sizeof(float4), 1, inFile);
 
 	// 3:
 	Node = (nodeAttributesStructure*)malloc(NumberOfNodes*sizeof(nodeAttributesStructure));
@@ -458,10 +425,6 @@ void readNodesAndMusclesFromBinaryFile()
  - NumberOfNodes int
  - NumberOfMuscles int
  - PulsePointNode int
- - ReferenceUpNode int
- - ReferenceBackNode int
- - ReferencePointNode int
- - ReferenceCenter float4
  - per node: type(int), position(float4), muscle[MUSCLES_PER_NODE](int), color(float4)
  - per muscle: type(int), nodeA(int), nodeB(int), naturalLength(float), color(float4)
 */
@@ -494,10 +457,6 @@ void saveBinary()
 	fwrite(&NumberOfNodes, sizeof(int), 1, binaryFile);
 	fwrite(&NumberOfMuscles, sizeof(int), 1, binaryFile);
 	fwrite(&PulsePointNode, sizeof(int), 1, binaryFile);
-	fwrite(&ReferenceUpNode, sizeof(int), 1, binaryFile);
-	fwrite(&ReferenceBackNode, sizeof(int), 1, binaryFile);
-	fwrite(&ReferencePointNode, sizeof(int), 1, binaryFile);
-	fwrite(&ReferenceCenter, sizeof(float4), 1, binaryFile);
 
 	// Save nodes.
 	for(int i = 0; i < NumberOfNodes; i++)
@@ -547,23 +506,16 @@ void setup()
 		readMusclesFromRawFile();
 		linkRawNodesToMuscles();
 		setMuscleNaturalLength();
+		PulsePointNode = 0;
+		Node[PulsePointNode].type = TypeBachmannBundle;
+		Node[PulsePointNode].color = getColorFromType(TypeBachmannBundle);
 		setAllMuscleTypesAndColors();
 	}
 	
 	centerObject();
 	RadiusOfLeftAtrium = findAverageRadiusOfObject();
-	
-	CenterOfSimulation.x = 0.0;
-	CenterOfSimulation.y = 0.0;
-	CenterOfSimulation.z = 0.0;
-	CenterOfSimulation.w = 0.0;
-		
-	AngleOfSimulation.x = 0.0;
-	AngleOfSimulation.y = 1.0;
-	AngleOfSimulation.z = 0.0;
-	AngleOfSimulation.w = 0.0;
 
-	Simulation.mouseMode = MouseModeStandardLA;
+	Simulation.mouseMode = TypeStandardLA;
 	Simulation.DrawNodesFlag = 0;
 	Simulation.DrawFrontHalfFlag = 0;
 	Simulation.isInMouseFunctionMode = false;
@@ -575,12 +527,27 @@ void setup()
 	MouseY = 0.0;
 	MouseSelectionRadius = 0.1*RadiusOfLeftAtrium;
 	
-	
-	// Scroll wheel speeds and toggle.
-	ScrollSpeedToggle = 1;
-	ScrollSpeedFast = 1.0;
-	ScrollSpeedSlow = 0.1;
+	// Starting scroll wheel speeds as fast.
 	ScrollSpeed = ScrollSpeedFast;
+	
+	// Window globals setup
+	XWindowSize = 1800;
+	YWindowSize = 1000;
+	// Clip plains
+	Near = 2.0; //0.2;
+	Far = 400.0; //80.0*RadiusOfLeftAtrium;
+	//Where your eye is located. It is important that this is a positive number, as the camera looks down the negative z axis. 
+	EyeX = 0.0*RadiusOfLeftAtrium;
+	EyeY = 0.0*RadiusOfLeftAtrium;
+	EyeZ = 2.0*RadiusOfLeftAtrium; 
+	//Where you are looking
+	CenterX = 0.0;
+	CenterY = 0.0;
+	CenterZ = 0.0;
+	//Up vector for viewing
+	UpX = 0.0;
+	UpY = 1.0;
+	UpZ = 0.0;
 	
 	printf("\n Have a good simulation.\n");
 }
@@ -643,9 +610,6 @@ void checkNodes()
 				if(d < cutoff)
 				{
 					printf("\n Nodes %d and %d are too close. Their separation is %f\n", i, j, d);
-					//printf("\n (%f, %f, %f)", Node[i].position.x, Node[i].position.y, Node[i].position.z);
-					//printf("\n (%f, %f, %f)", Node[j].position.x, Node[j].position.y, Node[j].position.z);
-					//printf("\n");
 					flag = true;
 				}
 			}
@@ -746,83 +710,10 @@ void setMuscleNaturalLength()
 //******************* User Action Functions ********************************************
 
 /*
- This function will:
- 1. Find the node that is closest to being directly above the center of the object (the UpNode).
- 2. Find the node that is closest to the user from the center of the object (the BackNode).
-    It is called the BackNode because in the reference view which all views are related to you are looking at
-    the bacl of the LA. The UpNode and BackNodes should be set when you are in this view.
-
- 3. Set the ReferenceUpNode ReferenceBackNode, and ReferenceCenter.
-*/
-void setReferencePoints()
-{
-	float dx, dy, dz, radiusSquared, minRadius;
-	float4 center;
-	int upId, backId;
-	
-	// 1:
-	minRadius = FLOATMAX;
-	upId = -1;
-	for(int i = 0; i < NumberOfNodes; i++)
-	{
-		if(center.y < Node[i].position.y)
-		{
-			dx = center.x - Node[i].position.x;
-			dz = center.z - Node[i].position.z;
-			radiusSquared = dx*dx + dz*dz;
-			if(radiusSquared < minRadius) 
-			{
-				upId = i;
-				minRadius = radiusSquared;
-			}
-		}
-	}
-	if(upId == -1)
-	{
-		printf("\n Error: Could not find ReferenceUpNode.");
-		printf("\n The Simulation has been terminated!\n");
-		exit(0);
-	}
-	
-	// 2:
-	backId = -1;
-	minRadius = FLOATMAX;
-	for(int i = 0; i < NumberOfNodes; i++)
-	{
-		if(center.z < Node[i].position.z)
-		{
-			radiusSquared = Node[i].position.x*Node[i].position.x + Node[i].position.y*Node[i].position.y;
-			dx = center.x - Node[i].position.x;
-			dy = center.y - Node[i].position.y;
-			radiusSquared = dx*dx + dy*dy;
-			if(radiusSquared < minRadius) 
-			{
-				backId = i;
-				minRadius = radiusSquared;
-			}
-		}
-	}
-	if(backId == -1)
-	{
-		printf("\n Error: Could not find ReferenceBackNode.");
-		printf("\n The Simulation has been terminated!\n");
-		exit(0);
-	}
-	
-	// 3:
-	ReferenceUpNode = upId;
-	ReferenceBackNode = backId;
-	ReferenceCenter = center;
-	
-	printf("\n ReferenceUpNode, ReferenceBackNode, and  ReferenceCenter have been set.\n");
-}
-
-/*
  This function:
- Runs through all nodes and tests to see if they are in a sphere of radius ??????, centered at the current mouse position.
+ Runs through all nodes and tests to see if they are in a sphere of radius MouseSelectionRadius, centered at the current mouse position.
  If it is, that node and the muscles it is connected to are set with the selected type and color.
 */
-
 void assignNodes(float3 mousePos, int nodeType)
 {
 	for(int i = 0; i < NumberOfNodes; i++)
@@ -842,158 +733,7 @@ void assignNodes(float3 mousePos, int nodeType)
 	}
 }
 
-//******************* View Functions ***********************************************
-
-/*
- This function: 
- Puts the viewer in the reference view. The reference view is looking straight at the four
- pulmonary veins with a vein in each of the four quadrants of the x-y plane as symmetric as you can make 
- it with the mitral valve down. We base all the other views off of this view.
-*/
-void ReferenceView()
-{	
-	float angle, temp;
-	centerObject();
-		
-	// Rotating until the up Node is on x-y plane above or below the positive x-axis.
-	angle = atan(Node[ReferenceUpNode].position.z/Node[ReferenceUpNode].position.x);
-	if(Node[ReferenceUpNode].position.x < 0.0) angle -= PI;
-	for(int i = 0; i < NumberOfNodes; i++)
-	{
-		temp = cos(angle)*Node[i].position.x + sin(angle)*Node[i].position.z;
-		Node[i].position.z  = -sin(angle)*Node[i].position.x + cos(angle)*Node[i].position.z;
-		Node[i].position.x  = temp;
-	}
-	AngleOfSimulation.y += angle;
-	
-	// Rotating until up Node is on the positive y axis.
-	angle = PI/2.0 - atan(Node[ReferenceUpNode].position.y/Node[ReferenceUpNode].position.x);
-	for(int i = 0; i < NumberOfNodes; i++)
-	{
-		temp = cos(angle)*Node[i].position.x - sin(angle)*Node[i].position.y;
-		Node[i].position.y  = sin(angle)*Node[i].position.x + cos(angle)*Node[i].position.y;
-		Node[i].position.x  = temp;
-	}
-	AngleOfSimulation.z += angle;
-	
-	// Rotating until front Node is on the positive z axis.
-	angle = atan(Node[ReferenceBackNode].position.z/Node[ReferenceBackNode].position.x) - PI/2.0;
-	if(Node[ReferenceBackNode].position.x < 0.0) angle -= PI;
-	for(int i = 0; i < NumberOfNodes; i++)
-	{
-		temp = cos(angle)*Node[i].position.x + sin(angle)*Node[i].position.z;
-		Node[i].position.z  = -sin(angle)*Node[i].position.x + cos(angle)*Node[i].position.z;
-		Node[i].position.x  = temp;
-	}
-	AngleOfSimulation.y += angle;
-}
-
-/*
- This function puts the LA in the PA view.
- The heart does not set in the chest at a straight on angle. Hence we need to adjust our 
- reference view to what is actually seen in a back view looking through the chest.
-*/
-void PAView()
-{  
-	float angle;
-	
-	ReferenceView();
-	
-	angle = PI/6.0; // Rotate 30 degrees counterclockwise on the y-axis 
-	//rotateYAxis(angle);
-	rotateObject(angle, 0, 1, 0);
-
-	angle = PI/6.0; // Rotate 30 degrees counterclockwise on the z-axis
-	//rotateZAxis(angle);
-	rotateObject(angle, 0, 0, 1);
-}
-
-/*
- This function puts the LA in the AP view.
- To get the AP view we just rotate the PA view 180 degrees on the y-axis
-
-*/
-void APView()
-{ 
-	float angle;
-	
-	PAView();
-	angle = PI; // Rotate 180 degrees counterclockwise on the y-axis 
-	//rotateYAxis(angle);
-	rotateObject(angle, 0, 1, 0);
-}
-
-/*
- This function sets all the views based off of the reference view and the AP view.
-*/
-void setView(int view)
-{
-	if(view == 6)
-	{
-		ReferenceView();
-		strcpy(ViewName, "Ref");
-	}
-	else if(view == 4)
-	{
-		PAView();
-		strcpy(ViewName, "PA");
-	}
-	else if(view == 2)
-	{
-		APView();
-		strcpy(ViewName, "AP");
-	}
-	else if(view == 3)
-	{
-		APView();
-		//rotateYAxis(-PI/6.0);
-		rotateObject(-PI/6.0, 0, 1, 0);
-		strcpy(ViewName, "RAO");
-	}
-	else if(view == 1)
-	{
-		APView();
-		//rotateYAxis(PI/3.0);
-		rotateObject(PI/3.0, 0, 1, 0);
-		strcpy(ViewName, "LAO");
-	}
-	else if(view == 7)
-	{
-		APView();
-		//rotateYAxis(PI/2.0);
-		rotateObject(PI/2.0, 0, 1, 0);
-		strcpy(ViewName, "LL");
-	}
-	else if(view == 9)
-	{
-		APView();
-		//rotateYAxis(-PI/2.0);
-		rotateObject(-PI/2.0, 0, 1, 0);
-		strcpy(ViewName, "RL");
-	}
-	else if(view == 8)
-	{
-		APView();
-		//rotateXAxis(PI/2.0);
-		rotateObject(PI/2.0, 1, 0, 0);
-		strcpy(ViewName, "SUP");
-	}
-	else if(view == 5)
-	{
-		APView();
-		//rotateXAxis(-PI/2.0);
-		rotateObject(-PI/2.0, 1, 0, 0);
-		strcpy(ViewName, "INF");
-	}
-	else
-	{
-		printf("\n Undefined view reverting back to Ref view.\n");
-		ReferenceView();
-		strcpy(ViewName, "Ref");
-	}
-}
-
-//******************* Draw Functions ***********************************************
+//******************* Image Functions ***********************************************
 
 /*
  This function:
@@ -1009,8 +749,8 @@ void createImage()
 	
 	glColor3d(Node[PulsePointNode].color.x, Node[PulsePointNode].color.y, Node[PulsePointNode].color.z);
 	glPushMatrix();
-	glTranslatef(Node[PulsePointNode].position.x, Node[PulsePointNode].position.y, Node[PulsePointNode].position.z);
-	renderSphereVBO();
+		glTranslatef(Node[PulsePointNode].position.x, Node[PulsePointNode].position.y, Node[PulsePointNode].position.z);
+		renderSphereVBO();
 	glPopMatrix();
 	
 	// Drawing center node
@@ -1035,8 +775,8 @@ void createImage()
 				{
 					glColor3d(Node[i].color.x, Node[i].color.y, Node[i].color.z);
 					glPushMatrix();
-					glTranslatef(Node[i].position.x, Node[i].position.y, Node[i].position.z);
-					renderSphereVBO();
+						glTranslatef(Node[i].position.x, Node[i].position.y, Node[i].position.z);
+						renderSphereVBO();
 					glPopMatrix();
 				}
 			}
@@ -1044,8 +784,8 @@ void createImage()
 			{
 				glColor3d(Node[i].color.x, Node[i].color.y, Node[i].color.z);
 				glPushMatrix();
-				glTranslatef(Node[i].position.x, Node[i].position.y, Node[i].position.z);
-				renderSphereVBO();
+					glTranslatef(Node[i].position.x, Node[i].position.y, Node[i].position.z);
+					renderSphereVBO();
 				glPopMatrix();
 			}	
 		}
@@ -1075,26 +815,12 @@ void createImage()
 		glEnd();
 	}
 
-	// Always draw PulsePointNode, UpNode, BackNode, and ReferenceNode as point sprites so they stand out regardless of node draw mode.
+	// Always draw PulsePointNode, as point a sprite so they stand out regardless of node draw mode.
 	glPointSize(NodePointSize * 1.35f);
 	glBegin(GL_POINTS);
 		
 		glColor3d(1.0, 0.85, 0.2);
 		glVertex3f(Node[PulsePointNode].position.x, Node[PulsePointNode].position.y, Node[PulsePointNode].position.z);
-		
-		glColor3d(0.2, 0.95, 1.0);
-		glVertex3f(Node[ReferenceUpNode].position.x, Node[ReferenceUpNode].position.y, Node[ReferenceUpNode].position.z);
-		
-		glColor3d(1.0, 0.45, 0.2);
-		glVertex3f(Node[ReferenceBackNode].position.x, Node[ReferenceBackNode].position.y, Node[ReferenceBackNode].position.z);
-		
-		glColor3d(1.0, 0.45, 1.0);
-		glVertex3f(Node[ReferencePointNode].position.x, Node[ReferencePointNode].position.y, Node[ReferencePointNode].position.z);
-		
-		float4 center = findCenterOfObject();
-		glColor3d(0.0, 0.0, 1.0);
-		glVertex3f(center.x, center.y, center.z);
-		
 	glEnd();
 	
 	// Drawing muscles
@@ -1136,12 +862,12 @@ void createImage()
 	}
 	
 	// Puts a ball at the location of the mouse if a mouse function is on.
-	if (Simulation.isInMouseFunctionMode)
+	if (Simulation.isInMouseFunctionMode == true)
 	{
 		glColor3d(1.0,1.0,1.0);
 		glPushMatrix();
-		glTranslatef(MouseX, MouseY, MouseZ);	
-		renderSphere(MouseSelectionRadius,20,20);
+			glTranslatef(MouseX, MouseY, MouseZ);	
+			renderSphere(MouseSelectionRadius,20,20);
 		glPopMatrix();
 	}
 }
@@ -1176,8 +902,6 @@ void renderSphereVBO()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-
-// Add this to a utility file, only used for the mouse selection since it's just 1 object
 /*
  This function:
  Creates a single sphere created for the mouse which can change. It is slower but it is just one sphere.
@@ -1374,14 +1098,14 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 		{
 			Simulation.isInMouseFunctionMode = false;
 			Simulation.guiCollapsed = false;
-			Simulation.mouseMode = NodeTypeStandardLA;
+			Simulation.mouseMode = TypeStandardLA;
 			glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
 		else
 		{
 			Simulation.isInMouseFunctionMode = true;
 			Simulation.guiCollapsed = true;
-			Simulation.mouseMode = NodeTypeStandardLA;
+			Simulation.mouseMode = TypeStandardLA;
 			glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		}
 		return;
@@ -1489,21 +1213,19 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 		float3 mousePos = {(float)MouseX, (float)MouseY, (float)MouseZ};
 		if(button == GLFW_MOUSE_BUTTON_LEFT)
 		{	
-			if(Simulation.mouseMode == MouseModePulseNode)
+			if(Simulation.mouseMode == TypePulseNode)
 			{
 				int nodeId = findClosestNodeToMouse(mousePos);
 				if(nodeId != -1)
 				{
+					// Reverting current PulsePointNode to standard value.
+					Node[PulsePointNode].type = TypeStandardLA;
+					Node[PulsePointNode].color = getColorFromType(TypeStandardLA);
+					// Updating new PulsePointNode.
+					Node[nodeId].type = TypeBachmannBundle;
+					Node[nodeId].color = getColorFromType(TypeBachmannBundle);
 					PulsePointNode = nodeId;
-				}
-			}
-			else if(Simulation.mouseMode == MouseModeBackTop)
-			{
-				int nodeId = findClosestNodeToMouse(mousePos);
-				if(nodeId != -1)
-				{
-					ReferencePointNode = nodeId;
-					setReferencePoints();
+					setAllMuscleTypesAndColors();
 				}
 			}
 			else
@@ -1513,7 +1235,7 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 		}
 		else if(button == GLFW_MOUSE_BUTTON_RIGHT) // Right Mouse button down
 		{
-			assignNodes(mousePos, NodeTypeStandardLA);
+			assignNodes(mousePos, TypeStandardLA);
 		}
 		else if(button == GLFW_MOUSE_BUTTON_MIDDLE)
 		{
@@ -1536,33 +1258,6 @@ void scrollWheelCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	bool ctrlHeld = (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS);
 
-	// Ctrl + scroll adjusts selector size to match model-side workflow.
-	/*
-	if(ctrlHeld)
-	{
-		if(yoffset > 0)
-		{
-			MouseSelectionRadiusMultiplier += 0.025f;
-			if(MouseSelectionRadiusMultiplier > 0.5f) MouseSelectionRadiusMultiplier = 0.5f;
-		}
-		else if(yoffset < 0)
-		{
-			MouseSelectionRadiusMultiplier -= 0.01f;
-			if(MouseSelectionRadiusMultiplier < 0.01f) MouseSelectionRadiusMultiplier = 0.01f;
-		}
-	}
-	else
-	{
-		if(yoffset > 0) // Scroll up
-		{
-			MouseZ -= ScrollSpeed;
-		}
-		else if(yoffset < 0) // Scroll down
-		{
-			MouseZ += ScrollSpeed;
-		}
-	}
-	*/
 	if(yoffset > 0) // Scroll up
 	{
 		MouseZ -= ScrollSpeed;
@@ -1609,14 +1304,13 @@ void createGUI()
 		else
 		{
 			ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "Mouse Mode");
-			     if (Simulation.mouseMode == MouseModeStandardLA) ImGui::TextUnformatted("Select: StandardLA");
-			else if (Simulation.mouseMode == MouseModeBachmannsBundle) ImGui::TextUnformatted("Select: Bachmann's Bundle");
-			else if (Simulation.mouseMode == MouseModeAppendage) ImGui::TextUnformatted("Select: LA Appendage");
-			else if (Simulation.mouseMode == MouseModeScarTissue) ImGui::TextUnformatted("Select: Scar Tissue");
-			else if (Simulation.mouseMode == MouseModePulmonaryVeins) ImGui::TextUnformatted("Select: Pulmonary Veins");
-			else if (Simulation.mouseMode == MouseModeMitralValve) ImGui::TextUnformatted("Select: Mitral Valve");
-			else if (Simulation.mouseMode == MouseModePulseNode) ImGui::TextUnformatted("Select: Pulse Node");
-			else if (Simulation.mouseMode == MouseModeBackTop) ImGui::TextUnformatted("Select: Reference Nodes");
+			     if (Simulation.mouseMode == TypeStandardLA) ImGui::TextUnformatted("Select: StandardLA");
+			else if (Simulation.mouseMode == TypeBachmannBundle) ImGui::TextUnformatted("Select: Bachmann's Bundle");
+			else if (Simulation.mouseMode == TypeAppendage) ImGui::TextUnformatted("Select: LA Appendage");
+			else if (Simulation.mouseMode == TypeScarTissue) ImGui::TextUnformatted("Select: Scar Tissue");
+			else if (Simulation.mouseMode == TypePulmonaryVeins) ImGui::TextUnformatted("Select: Pulmonary Veins");
+			else if (Simulation.mouseMode == TypeMitralValve) ImGui::TextUnformatted("Select: Mitral Valve");
+			else if (Simulation.mouseMode == TypePulseNode) ImGui::TextUnformatted("Select: Pulse Node");
 			else ImGui::TextUnformatted("Section: None");
 		}
 		ImGui::TextUnformatted("Tab: Toggle GUI/Mouse mode");
@@ -1677,61 +1371,6 @@ void createGUI()
 				}
 			}
 		}       
-	       
-		// View presets
-		if (ImGui::CollapsingHeader("View Controls", ImGuiTreeNodeFlags_DefaultOpen))//2nd arg is the flags, DefaultOpen means it will be open by default
-		{
-			if (ImGui::Button("PA"))
-			{ 
-				setView(4); 
-			}
-			
-			ImGui::SameLine();
-			if (ImGui::Button("AP"))  
-			{
-				setView(2); 
-			}
-			
-			ImGui::SameLine();
-			if (ImGui::Button("Ref"))
-			{ 
-				setView(6);  
-			}
-			
-			if (ImGui::Button("LAO"))
-			{ 
-				setView(1);   
-			}
-			
-			ImGui::SameLine();
-			if (ImGui::Button("RAO"))
-			{ 
-				setView(3); 
-			}
-			
-			ImGui::SameLine();
-			if (ImGui::Button("LL"))
-			{ 
-				setView(7);  
-			}
-
-			if (ImGui::Button("RL"))
-			{ 
-				setView(9); 
-			}
-			
-			ImGui::SameLine();
-			if (ImGui::Button("SUP"))
-			{ 
-				setView(8);  
-			}
-			
-			ImGui::SameLine();
-			if (ImGui::Button("INF"))
-			{ 
-				setView(5);  
-			}
-		}
 		
 		// Mouse mode selection
 		if (ImGui::CollapsingHeader("Mouse Functions", ImGuiTreeNodeFlags_DefaultOpen))
@@ -1742,24 +1381,16 @@ void createGUI()
 			
 			if (ImGui::Button("Set Pulse Node")) 
 			{
-				Simulation.mouseMode = MouseModePulseNode;
+				Simulation.mouseMode = TypePulseNode;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
 			ShowTooltip("Sets the pulse node.");
 			
-			if (ImGui::Button("Set Reference point & Nodes")) 
-			{
-				Simulation.mouseMode = MouseModeBackTop;
-				Simulation.isInMouseFunctionMode = true;
-				Simulation.guiCollapsed = true;
-				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
-			}
-
 			if (ImGui::Button("Set Standard LA Node")) 
 			{
-				Simulation.mouseMode = NodeTypeStandardLA;
+				Simulation.mouseMode = TypeStandardLA;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
@@ -1767,7 +1398,7 @@ void createGUI()
 
 			if (ImGui::Button("Set Bachmann's Bundle")) 
 			{
-				Simulation.mouseMode = MouseModeBachmannsBundle;
+				Simulation.mouseMode = TypeBachmannBundle;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
@@ -1775,7 +1406,7 @@ void createGUI()
 			
 			if (ImGui::Button("Set Appendage")) 
 			{
-				Simulation.mouseMode = MouseModeAppendage;
+				Simulation.mouseMode = TypeAppendage;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
@@ -1783,7 +1414,7 @@ void createGUI()
 			
 			if (ImGui::Button("Set Scar Tissue")) 
 			{
-				Simulation.mouseMode = MouseModeScarTissue;
+				Simulation.mouseMode = TypeScarTissue;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
@@ -1791,7 +1422,7 @@ void createGUI()
 
 			if (ImGui::Button("Set Pulmonary Veins")) 
 			{
-				Simulation.mouseMode = MouseModePulmonaryVeins;
+				Simulation.mouseMode = TypePulmonaryVeins;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
@@ -1799,7 +1430,7 @@ void createGUI()
 
 			if (ImGui::Button("Set Mitral Valve")) 
 			{
-				Simulation.mouseMode = MouseModeMitralValve;
+				Simulation.mouseMode = TypeMitralValve;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
@@ -1807,7 +1438,7 @@ void createGUI()
 			
 			if (ImGui::Button("Set Back Wall")) 
 			{
-				Simulation.mouseMode = MouseModeBackWall;
+				Simulation.mouseMode = TypeBackWall;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
@@ -1815,7 +1446,7 @@ void createGUI()
 			
 			if (ImGui::Button("Set Extra Tissue")) 
 			{
-				Simulation.mouseMode = MouseModeExtraTissue;
+				Simulation.mouseMode = TypeExtraTissue;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
@@ -1851,7 +1482,11 @@ void createGUI()
 			ImGui::NewLine(); //added a new line for spacing
 			ImGui::Text("Selection Sphere Size Adjustment: +/-");
 			ImGui::NewLine(); //added a new line for spacing
-			ImGui::Text("Toggle GUI/Mouse mode: Tab");			
+			ImGui::Text("Toggle GUI/Mouse mode: Tab");	
+			ImGui::NewLine(); //added a new line for spacing
+			ImGui::Text("Left Mouse: Change to selected type.");
+			ImGui::Text("Right Mouse: Revert back to standardLA.");
+			ImGui::Text("Middle Mouse: Toggles scroll speed.");
 		}
 	ImGui::End(); //end the main controls window
   
@@ -2001,7 +1636,11 @@ void setSingleMuscleTypeAndColor(int muscleId)
 
 	int typeA = Node[a].type;
 	int typeB = Node[b].type;
-	if(typeA == typeB) Muscle[muscleId].type = typeA;
+	if(typeA == typeB) 
+	{
+		Muscle[muscleId].type = typeA;
+		Muscle[muscleId].color = getColorFromType(typeA);
+	}
 	else
 	{
 		int priorityA = getTypePriority(typeA);
@@ -2081,14 +1720,14 @@ int findClosestNodeToMouse(float3 mousePos)
 */
 int getTypePriority(int type)
 {
-	if(type == NodeTypeStandardLA) return 7;
-	if(type == NodeTypeBachmannBundle) return 1;
-	if(type == NodeTypeAppendage) return 3;
-	if(type == NodeTypeScarTissue) return 6;
-	if(type == NodeTypePulmonaryVeins) return 2;
-	if(type == NodeTypeMitralValve) return 4;
-	if(type == NodeTypeBackWall) return 5;
-	if(type == NodeTypeExtraTissue) return 8;
+	if(type == TypeStandardLA) return 7;
+	if(type == TypeBachmannBundle) return 1;
+	if(type == TypeAppendage) return 3;
+	if(type == TypeScarTissue) return 6;
+	if(type == TypePulmonaryVeins) return 2;
+	if(type == TypeMitralValve) return 4;
+	if(type == TypeBackWall) return 5;
+	if(type == TypeExtraTissue) return 8;
 	else
 	{
 		printf("\n Error: Unknown node type while setting type priority.");
@@ -2103,14 +1742,14 @@ int getTypePriority(int type)
 */
 float4 getColorFromType(int type)
 {	
-	if(type == NodeTypeStandardLA) return ColorStandardLA;
-	if(type == NodeTypeBachmannBundle) return ColorBachmannsBundle;
-	if(type == NodeTypeAppendage) return ColorAppendage;
-	if(type == NodeTypeScarTissue) return ColorScarTissue;
-	if(type == NodeTypePulmonaryVeins) return ColorPulmonaryVeins;
-	if(type == NodeTypeMitralValve) return ColorMitralValve;
-	if(type == NodeTypeBackWall) return ColorBackWall;
-	if(type == NodeTypeExtraTissue) return ColorExtraTissue;
+	if(type == TypeStandardLA) return ColorStandardLA;
+	if(type == TypeBachmannBundle) return ColorBachmannsBundle;
+	if(type == TypeAppendage) return ColorAppendage;
+	if(type == TypeScarTissue) return ColorScarTissue;
+	if(type == TypePulmonaryVeins) return ColorPulmonaryVeins;
+	if(type == TypeMitralValve) return ColorMitralValve;
+	if(type == TypeBackWall) return ColorBackWall;
+	if(type == TypeExtraTissue) return ColorExtraTissue;
 	else
 	{
 		printf("\n Error: Unknown node type while setting type colors.");

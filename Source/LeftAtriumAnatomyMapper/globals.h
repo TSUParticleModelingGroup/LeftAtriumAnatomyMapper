@@ -84,16 +84,21 @@ typedef struct
 // ******************************************** Globals ******************************************
 
 // Node types: Assigns a number for the different types of tissue. They are set here.
-const int NodeTypeStandardLA = 0;
-const int NodeTypeBachmannBundle = 1;
-const int NodeTypeAppendage = 2;
-const int NodeTypeScarTissue = 3;
-const int NodeTypePulmonaryVeins = 4;
-const int NodeTypeMitralValve = 5;
-const int NodeTypeBackWall = 6;
-const int NodeTypeExtraTissue = 7;
+const int TypeStandardLA = 0;
+const int TypeBachmannBundle = 1;
+const int TypeAppendage = 2;
+const int TypeScarTissue = 3;
+const int TypePulmonaryVeins = 4;
+const int TypeMitralValve = 5;
+const int TypeBackWall = 6;
+const int TypeExtraTissue = 7;
+// This is not a tissue type it is where we initiate the beat.
+// The tissue type of the pulseNode is BacchannBundle 
+// This node just has the extra task of oracstrating the beat.
+// We set it to be 100 so we can add addition tissue types in the future as needed.
+const int TypePulseNode = 100;
 
-// Color types: Assigns a color a color to each of the tissue type. They arer set here.
+// Color types: Assigns a color to each of the tissue type. They are set here.
 const float4 ColorStandardLA = {1.0f, 0.0f, 0.0f, 0.0f}; // Red for standard nodes (to reduce contrast)
 const float4 ColorBachmannsBundle = {0.2f, 0.2f, 1.0f, 0.0f}; // Blue for Bachmann's Bundle nodes and muscles by default.
 const float4 ColorAppendage = {1.0f, 0.8f, 0.3f, 0.0f}; // Orange for left atrial appendage nodes and muscles by default.
@@ -103,29 +108,12 @@ const float4 ColorMitralValve = {0.5f, 0.0f, 0.5f, 0.0f}; // Purple for mitral v
 const float4 ColorBackWall = {0.0f, 1.0f, 0.0f, 0.0f}; // Green for back wall nodes and muscles by default.
 const float4 ColorExtraTissue = {0.6f, 0.6f, 0.6f, 0.0f}; // Gray for extra tissue nodes and muscles by default.
 
-// Mouse modes, which will use the same int values as the node types for simplicity.
-const int MouseModeStandardLA = NodeTypeStandardLA;
-const int MouseModeBachmannsBundle = NodeTypeBachmannBundle;
-const int MouseModeAppendage = NodeTypeAppendage;
-const int MouseModeScarTissue = NodeTypeScarTissue;
-const int MouseModePulmonaryVeins = NodeTypePulmonaryVeins;
-const int MouseModeMitralValve = NodeTypeMitralValve;
-const int MouseModeBackWall = NodeTypeBackWall;
-const int MouseModeExtraTissue = NodeTypeExtraTissue;
-// This is not selecting a tissue type. It for selecting a single node to initiate the pulse. 
-// 100 is just a number to disiguish it from the other Mouse modes.
-const int MouseModePulseNode = 100; 
-// This is not selecting a tissue type. It for selecting a reference view, which all other views
-// are generated from. 
-// 101 is just a number to disiguish it from the other Mouse modes.
-const int MouseModeBackTop = 101;
-
 // How many nodes and muscle the simulation contains.
 // They are read in form the Raw or Bin files. 
 // Node and Muscle structure memory is allocated from these numbers.
 // They are set to -1 here to flag for errors if something goes wrong while reading them in.
-int NumberOfNodes;
-int NumberOfMuscles;
+int NumberOfNodes = -1;
+int NumberOfMuscles = -1;
 
 // These hold all the nodes and muscle structures.
 // They are generated for raw files or read in from bin files.
@@ -146,23 +134,9 @@ GLuint SphereVBO, SphereIBO;
 GLuint NumSphereVertices, NumSphereIndices;
 
 // This is the node where the beat initiates from. 
-// It is initially read in from the Raw nodes file or the bin file but can be changed in the simulation.
-// It is set to -1 here for error catching.
+// It is read in from a binary file or set to 0 in setup if a raw file is read in.
+// It is set to -1 here for error checking.
 int PulsePointNode = -1;
-
-// These are the reference nodes and center point used to orient the object.
-// If the data is loaded from a raw node file, ReferenceUpNode and
-// ReferenceBackNode are read from the file, ReferencePointNode is set
-// to the same as the ReferenceBackNode, and ReferenceCenter is set to (0,0,0).
-// If the data is loaded from a binary file, all reference data is read
-// from the file. All values can be modified during the simulation.
-// The node indices are initialized to -1 for error checking, and the
-// center is initialized to (0,0,0) because that is its natural default
-// value.
-int ReferenceUpNode = -1;
-int ReferenceBackNode = -1;
-int ReferencePointNode = -1;
-float4 ReferenceCenter = {0.0f, 0.0f, 0.0f, 0.0f};
 
 // Holds the name of the medical view you are in for displaying in the terminal print.
 // It is initialized here.
@@ -193,25 +167,22 @@ double MouseSelectionRadius = -1.0;
 // They are initialized in setup().
 double MouseX, MouseY, MouseZ;
 
-// Variable that holds a number that is multiplied by the RadiusOfLeftAtrium to create the radius of the selection sphere.
-// It is initialized in setup().
-//float MouseSelectionRadiusMultiplier;
-
 // Variables that are used to adjust the scroll speed of the mouse.
 // Pressing the center mouase button will toggle you between a fast and slow scroll speed.
-// They are initialized in setup().
-int ScrollSpeedToggle;
+// They are initialized here and in setup().
+int ScrollSpeedToggle = 1;
+double ScrollSpeedFast = 1.0;
+double ScrollSpeedSlow = 0.1;
 double ScrollSpeed;
-double ScrollSpeedFast;
-double ScrollSpeedSlow;
 
 // These keep track of where the view is as you translate and rotate the object.
-// They are initialized in setup().
-float4 CenterOfSimulation;
-float4 AngleOfSimulation;
+// They are initialized here.
+float4 CenterOfSimulation = {0.0f, 0.0f, 0.0f, 0.0f};
+float4 AngleOfSimulation  = {0.0f, 1.0f, 0.0f, 0.0f};
 
 // Window globals 
-// They are all initialized in main().
+// They are all initialized in setup() because some of them depend of the RadiusOfLeftAtrium
+// which is initialize in setup.
 GLFWwindow* Window; // Window pointer
 // Window size
 int XWindowSize;
@@ -260,16 +231,10 @@ double findAverageRadiusOfObject(); //done
 void setMuscleNaturalLength(); //done
 
 // User Action Functions
-void setReferencePoints();//done
-void assignNodes(float3, int);
+//void setReferencePoints();//done
+void assignNodes(float3, int); // done
 
-// View Functions
-void ReferenceView();
-void PAView();
-void APView();
-void setView(int);
-
-// Draw Functions
+// Image Functions
 void createImage();
 void renderSphereVBO();
 void renderSphere(float, int, int);

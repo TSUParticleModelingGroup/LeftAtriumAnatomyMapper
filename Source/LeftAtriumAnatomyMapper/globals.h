@@ -257,21 +257,20 @@ void myMouseCallback(GLFWwindow*, int, int, int);
 void scrollWheelCallback(GLFWwindow*, double, double);
 
 // Graphical User Interface Functions
-static inline void ShowTooltip(const char* text); // done
-void createGUI();
+void createGUI(); //BMW
 
 // Utility Functions
-float4 findCenterOfObject(); //done
-void centerObject();//done
-void rotateObject(float, int, int, int);//done
-void translateObject(float, float, float);//done
-void setSingleMuscleTypeAndColor(int); //done
-void setAllMuscleTypesAndColors(); //done
-bool isNodeInMouseSphere(int, float3); //done
-int findClosestNodeToMouse(float3); //done
-float4 getColorFromType(int); //done
-const char *getTimeStamp(); //done
-void shutdownAndCleanup(); //done
+float4 findCenterOfObject();
+void centerObject();
+void rotateObject(float, int);
+void translateObject(float, float, float);
+void setSingleMuscleTypeAndColor(int);
+void setAllMuscleTypesAndColors();
+bool isNodeInMouseSphere(int, float3);
+int findClosestNodeToMouse(float3);
+float4 getColorFromType(int);
+const char *getTimeStamp(); 
+void shutdownAndCleanup(); 
 
 
 

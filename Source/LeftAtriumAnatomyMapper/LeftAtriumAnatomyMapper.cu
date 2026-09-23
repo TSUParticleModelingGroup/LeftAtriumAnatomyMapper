@@ -1112,27 +1112,27 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
         // X-axis Translations and Rotations
         if(key == GLFW_KEY_X && (action == GLFW_PRESS || action == GLFW_REPEAT))
         {
-        	if((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT)) rotateObject(-dAngle, 1, 0, 0);
+        	if((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT)) rotateObject(-dAngle, 1);
 		else if(mods == GLFW_MOD_SHIFT) translateObject(dx, 0.0, 0.0);
-		else if(mods == GLFW_MOD_CONTROL) rotateObject(dAngle, 1, 0, 0);
+		else if(mods == GLFW_MOD_CONTROL) rotateObject(dAngle, 1);
 		else translateObject(-dx, 0.0, 0.0);
         }
         
         // Y-axis Translations and Rotations
         if(key == GLFW_KEY_Y && (action == GLFW_PRESS || action == GLFW_REPEAT))
         {
-        	if((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT)) rotateObject(dAngle, 0, 1, 0);
+        	if((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT)) rotateObject(dAngle, 2);
 		else if(mods == GLFW_MOD_SHIFT) translateObject(0.0, dy, 0.0);
-		else if(mods == GLFW_MOD_CONTROL) rotateObject(-dAngle, 0, 1, 0);
+		else if(mods == GLFW_MOD_CONTROL) rotateObject(-dAngle, 2);
 		else translateObject(0.0, -dy, 0.0);
         }
         
         // Z-axis Translations and Rotations
         if(key == GLFW_KEY_Z && (action == GLFW_PRESS || action == GLFW_REPEAT))
         {
-        	if((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT)) rotateObject(-dAngle, 0, 0, 1);
+        	if((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT)) rotateObject(-dAngle, 3);
 		else if(mods == GLFW_MOD_SHIFT) translateObject(0.0, 0.0, dz);
-		else if(mods == GLFW_MOD_CONTROL) rotateObject(dAngle, 0, 0, 1);
+		else if(mods == GLFW_MOD_CONTROL) rotateObject(dAngle, 3);
 		else translateObject(0.0, 0.0, -dz);
         }
         
@@ -1199,21 +1199,18 @@ void mousePassiveMotionCallback(GLFWwindow* window, double x, double y)
 */
 void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 {	
-	// Add this if we want the GUI to only accept GUI handling until you ckick off of it
-	// Get ImGui IO to check if it's capturing input
+	// Don't process mouse input if ImGui is using it.
 	ImGuiIO& io = ImGui::GetIO();
-    
-	// If ImGui is handling this mouse event, return
 	if (io.WantCaptureMouse) return;
 	
-	if(action == GLFW_PRESS)
+	if(action == GLFW_PRESS) // Mouse bottun is pressed.
 	{
 		float3 mousePos = {(float)MouseX, (float)MouseY, (float)MouseZ};
-		if(button == GLFW_MOUSE_BUTTON_LEFT)
+		if(button == GLFW_MOUSE_BUTTON_LEFT) // Mouse left bottun is pressed.
 		{	
 			if(Simulation.mouseMode == TypePulseNode)
 			{
-				int nodeId = findClosestNodeToMouse(mousePos);
+				int nodeId = findClosestNodeToMouse(mousePos); 
 				if(nodeId != -1)
 				{
 					// Reverting current PulsePointNode to standard value.
@@ -1231,12 +1228,12 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 			}
 			setAllMuscleTypesAndColors();
 		}
-		else if(button == GLFW_MOUSE_BUTTON_RIGHT) // Right Mouse button down
+		else if(button == GLFW_MOUSE_BUTTON_RIGHT) // Right Mouse button pressed
 		{
 			assignNodes(mousePos, TypeStandardLA);
 			setAllMuscleTypesAndColors();
 		}
-		else if(button == GLFW_MOUSE_BUTTON_MIDDLE)
+		else if(button == GLFW_MOUSE_BUTTON_MIDDLE) // Middle Mouse button pressed // BMW you can remove the toggle just go off over the speeds
 		{
 			if(ScrollSpeedToggle == 0)
 			{
@@ -1253,10 +1250,12 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 	}
 }
 
+/*
+ This function:
+ Adjusts the mouse's selection sphere's z value from the mouse's scroll wheel.
+*/
 void scrollWheelCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	bool ctrlHeld = (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS);
-
 	if(yoffset > 0) // Scroll up
 	{
 		MouseZ -= ScrollSpeed;
@@ -1288,13 +1287,16 @@ void createGUI()
 		else
 		{
 			ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "Mouse Mode");
-			     if (Simulation.mouseMode == TypeStandardLA) ImGui::TextUnformatted("Select: StandardLA");
+			if (Simulation.mouseMode == TypePulseNode) ImGui::TextUnformatted("Select: Pulse Node");
+			
 			else if (Simulation.mouseMode == TypeBachmannBundle) ImGui::TextUnformatted("Select: Bachmann's Bundle");
-			else if (Simulation.mouseMode == TypeAppendage) ImGui::TextUnformatted("Select: LA Appendage");
-			else if (Simulation.mouseMode == TypeScarTissue) ImGui::TextUnformatted("Select: Scar Tissue");
 			else if (Simulation.mouseMode == TypePulmonaryVeins) ImGui::TextUnformatted("Select: Pulmonary Veins");
+			else if (Simulation.mouseMode == TypeScarTissue) ImGui::TextUnformatted("Select: Back Wall");
 			else if (Simulation.mouseMode == TypeMitralValve) ImGui::TextUnformatted("Select: Mitral Valve");
-			else if (Simulation.mouseMode == TypePulseNode) ImGui::TextUnformatted("Select: Pulse Node");
+			else if (Simulation.mouseMode == TypeAppendage) ImGui::TextUnformatted("Select: LA Appendage");
+			else if (Simulation.mouseMode == TypeStandardLA) ImGui::TextUnformatted("Select: StandardLA");
+			else if (Simulation.mouseMode == TypeScarTissue) ImGui::TextUnformatted("Select: Scar Tissue");
+			else if (Simulation.mouseMode == TypePulseNode) ImGui::TextUnformatted("Select: Extra Tissue");
 			else ImGui::TextUnformatted("Section: None");
 		}
 		ImGui::TextUnformatted("Tab: Toggle GUI/Mouse mode");
@@ -1524,12 +1526,15 @@ void centerObject()
 
 /* 
  This function:
- Physicaly otates the object. It takes the angle then looks to see which axis is not zero and it rotates around those axises.
+ Physicaly rotates the object. It takes the angle then looks to see which axis to rotates.
+ 1: X-axis
+ 2: Y-axis
+ 3: Z-axis
  You could use glRotate and this would change your view but your x,y,z locations do not get ajdusted and where we put the 
  selection sphere when selecting nodes get all screwed up so we most move all the nodes not the view.
  This is the view rotate function for reference glRotatef(dAngle, 0.0f, 0.0f, 1.0f);
 */	
-void rotateObject(float angle, int xAxis, int yAxis, int zAxis)
+void rotateObject(float angle, int axis)
 {
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
@@ -1539,7 +1544,7 @@ void rotateObject(float angle, int xAxis, int yAxis, int zAxis)
 	}
 	
 	float temp;
-	if(xAxis != 0)
+	if(axis == 1) // X-axis
 	{
 		for(int i = 0; i < NumberOfNodes; i++)
 		{
@@ -1549,7 +1554,7 @@ void rotateObject(float angle, int xAxis, int yAxis, int zAxis)
 		}
 		AngleOfSimulation.x += angle;
 	}
-	if(yAxis != 0)
+	if(axis == 2) // Y-axis
 	{
 		for(int i = 0; i < NumberOfNodes; i++)
 		{
@@ -1559,7 +1564,7 @@ void rotateObject(float angle, int xAxis, int yAxis, int zAxis)
 		}
 		AngleOfSimulation.y += angle;
 	}
-	if(zAxis != 0)
+	if(axis == 3) // Z-axis
 	{
 		for(int i = 0; i < NumberOfNodes; i++)
 		{
@@ -1605,31 +1610,18 @@ void translateObject(float dx, float dy, float dz)
 */
 void setSingleMuscleTypeAndColor(int muscleId)
 {
-	int a = Muscle[muscleId].nodeA;
-	int b = Muscle[muscleId].nodeB;
-
-	int typeA = Node[a].type;
-	int typeB = Node[b].type;
-	if(typeA == typeB) 
+	int typeA = Node[Muscle[muscleId].nodeA].type;
+	int typeB = Node[Muscle[muscleId].nodeB].type;
+	
+	if(typeA <= typeB)
 	{
 		Muscle[muscleId].type = typeA;
 		Muscle[muscleId].color = getColorFromType(typeA);
 	}
-	else
+	else 
 	{
-		//int priorityA = getTypePriority(typeA);
-		//int priorityB = getTypePriority(typeB);
-		//if(priorityA < priorityB) 
-		if(typeA < typeB)
-		{
-			Muscle[muscleId].type = typeA;
-			Muscle[muscleId].color = getColorFromType(typeA);
-		}
-		else 
-		{
-			Muscle[muscleId].type = typeB;
-			Muscle[muscleId].color = getColorFromType(typeB);
-		}
+		Muscle[muscleId].type = typeB;
+		Muscle[muscleId].color = getColorFromType(typeB);
 	}
 }
 
@@ -1668,7 +1660,7 @@ int findClosestNodeToMouse(float3 mousePos)
 {
 	float dx, dy,dz, d2;
 	int closestNode = -1;
-	float closestDistSquared = FLOATMAX;
+	float test = FLOATMAX;
 
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
@@ -1676,9 +1668,9 @@ int findClosestNodeToMouse(float3 mousePos)
 		dy = Node[i].position.y - mousePos.y;
 		dz = Node[i].position.z - mousePos.z;
 		d2 = dx*dx + dy*dy + dz*dz;
-		if(d2 < MouseSelectionRadius*MouseSelectionRadius && d2 < closestDistSquared)
+		if(d2 < MouseSelectionRadius*MouseSelectionRadius && d2 < test)
 		{
-			closestDistSquared = d2;
+			test = d2;
 			closestNode = i;
 		}
 	}
@@ -1691,13 +1683,13 @@ int findClosestNodeToMouse(float3 mousePos)
 */
 float4 getColorFromType(int type)
 {	
-	if(type == TypeStandardLA) return ColorStandardLA;
 	if(type == TypeBachmannBundle) return ColorBachmannsBundle;
-	if(type == TypeAppendage) return ColorAppendage;
-	if(type == TypeScarTissue) return ColorScarTissue;
 	if(type == TypePulmonaryVeins) return ColorPulmonaryVeins;
-	if(type == TypeMitralValve) return ColorMitralValve;
 	if(type == TypeBackWall) return ColorBackWall;
+	if(type == TypeMitralValve) return ColorMitralValve;
+	if(type == TypeAppendage) return ColorAppendage;
+	if(type == TypeStandardLA) return ColorStandardLA;
+	if(type == TypeScarTissue) return ColorScarTissue;
 	if(type == TypeExtraTissue) return ColorExtraTissue;
 	else
 	{

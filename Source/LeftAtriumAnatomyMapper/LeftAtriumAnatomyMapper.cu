@@ -525,9 +525,6 @@ void setup()
 	MouseY = 0.0;
 	MouseSelectionRadius = 0.1*RadiusOfLeftAtrium;
 	
-	// Starting scroll wheel speeds as fast.
-	ScrollSpeed = ScrollSpeedFast;
-	
 	// Window globals setup
 	XWindowSize = 1800;
 	YWindowSize = 1000;
@@ -711,12 +708,14 @@ void setMuscleNaturalLength()
  This function:
  Runs through all nodes and tests to see if they are in a sphere of radius MouseSelectionRadius, centered at the current mouse position.
  If it is, that node and the muscles it is connected to are set with the selected type and color.
+ The pulse point node should always be of tpye Bachmann's bundle so it also checks to make sure it is not changing the type of the
+ pulse point node.
 */
 void assignNodes(float3 mousePos, int nodeType)
 {
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
-		if(isNodeInMouseSphere(i, mousePos) == true)
+		if(isNodeInMouseSphere(i, mousePos) == true && i != PulsePointNode)
 		{
 			Node[i].type = nodeType;
 			Node[i].color = getColorFromType(nodeType);
@@ -1195,19 +1194,36 @@ void mousePassiveMotionCallback(GLFWwindow* window, double x, double y)
 }
 
 /*
- This function does an action based on the mode the viewer is in and which mouse button the user pressed.
+ This function:
+ Performs an action based on the mode the viewer is in and which mouse button the user pressed.
+ 1: Checks which mode the mouse is in. If it is the GUI mode it will ignore the window mouse actions.
+ 2: If the GUI does not have controll of the mouse and a bottun is pressed these actions will happen.
+ 3: If the left mouse button is pressed, it check to see what selection mode the user is in.
+ 	a: If it is in the mode that selects the pulse node it finds the closest node to the center
+ 	   of the selection sphere, reverts the old pulse node to a standard LA node and set the selected 
+ 	   node to be the pulse node and sets it to be of type Bachmann's bundle.
+ 	b: If the user is in any of the other type node selection setting, all nodes is the selction 
+ 	   sphere are set to that type.
+ 	c: It finishes by setting all muscle types to their new types determined by the newly selected 
+ 	   node tpyes.
+ 4: If the right mouse button is pressed it reverts all nodes is in the selection sphere back to the 
+    Standard LA tpye then adjusts all muscle acordingly.
+ 5: If the center mouse button is pressed the mouse scroll speed is toggle between its slow and fast speeds.
 */
 void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 {	
-	// Don't process mouse input if ImGui is using it.
+	// 1: Don't process mouse input if ImGui is using it.
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.WantCaptureMouse) return;
 	
-	if(action == GLFW_PRESS) // Mouse bottun is pressed.
+	// 2: A mouse bottun is pressed.
+	if(action == GLFW_PRESS)
 	{
 		float3 mousePos = {(float)MouseX, (float)MouseY, (float)MouseZ};
-		if(button == GLFW_MOUSE_BUTTON_LEFT) // Mouse left bottun is pressed.
+		// 3: Left mouse bottun is pressed.
+		if(button == GLFW_MOUSE_BUTTON_LEFT) 
 		{	
+			// a: Setting pulse node.
 			if(Simulation.mouseMode == TypePulseNode)
 			{
 				int nodeId = findClosestNodeToMouse(mousePos); 
@@ -1222,27 +1238,29 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 					PulsePointNode = nodeId;
 				}
 			}
+			// b: Setting all other node types.
 			else
 			{
 				assignNodes(mousePos, Simulation.mouseMode);
 			}
+			// c: Updating muscles.
 			setAllMuscleTypesAndColors();
 		}
-		else if(button == GLFW_MOUSE_BUTTON_RIGHT) // Right Mouse button pressed
+		// 4: Reverting selected nodes back to standard LA type, on right mouse button pressed
+		else if(button == GLFW_MOUSE_BUTTON_RIGHT)
 		{
 			assignNodes(mousePos, TypeStandardLA);
 			setAllMuscleTypesAndColors();
 		}
-		else if(button == GLFW_MOUSE_BUTTON_MIDDLE) // Middle Mouse button pressed // BMW you can remove the toggle just go off over the speeds
+		// 5: Scroll speed toggles on middle mouse button pressed.
+		else if(button == GLFW_MOUSE_BUTTON_MIDDLE)
 		{
-			if(ScrollSpeedToggle == 0)
+			if(ScrollSpeed == ScrollSpeedSlow)
 			{
-				ScrollSpeedToggle = 1;
 				ScrollSpeed = ScrollSpeedFast;
 			}
 			else
 			{
-				ScrollSpeedToggle = 0;
 				ScrollSpeed = ScrollSpeedSlow;
 			}
 			
@@ -1252,7 +1270,7 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 
 /*
  This function:
- Adjusts the mouse's selection sphere's z value from the mouse's scroll wheel.
+ Adjusts the slection sphere's z component.
 */
 void scrollWheelCallback(GLFWwindow* window, double xoffset, double yoffset)
 {

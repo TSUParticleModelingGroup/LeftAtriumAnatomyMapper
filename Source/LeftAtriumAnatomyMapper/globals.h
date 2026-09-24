@@ -155,7 +155,7 @@ char ViewName[256] = "no view set";
 char SubGUIMessage[512] = "";
 
 // These are all the globals that are read in from the ConfigSetup.
-// They are initialize here to bogus value for error checking.
+// They are initialize here to bogus value for error checking.ScrollSpeedSlow
 char NodesMusclesFileName[256] = "";
 float LineWidth = -1.0;
 float NodeRadiusAdjustment = -1.0;
@@ -177,11 +177,10 @@ double MouseX, MouseY, MouseZ;
 
 // Variables that are used to adjust the scroll speed of the mouse.
 // Pressing the center mouase button will toggle you between a fast and slow scroll speed.
-// They are initialized here and in setup().
-int ScrollSpeedToggle = 1;
+// They are initialized here.
 double ScrollSpeedFast = 1.0;
 double ScrollSpeedSlow = 0.1;
-double ScrollSpeed;
+double ScrollSpeed = ScrollSpeedFast;
 
 // These keep track of where the view is as you translate and rotate the object.
 // They are initialized here.
@@ -253,13 +252,13 @@ void screenShot();
 void reshapeCallback(GLFWwindow*, int, int);
 void keyPressedCallback(GLFWwindow*, int, int, int, int);
 void mousePassiveMotionCallback(GLFWwindow*, double, double);
-void myMouseCallback(GLFWwindow*, int, int, int);
-void scrollWheelCallback(GLFWwindow*, double, double);
+void myMouseCallback(GLFWwindow*, int, int, int); // done
+void scrollWheelCallback(GLFWwindow*, double, double); //done
 
 // Graphical User Interface Functions
 void createGUI(); //BMW
 
-// Utility Functions
+// Utility Functions (Done)
 float4 findCenterOfObject();
 void centerObject();
 void rotateObject(float, int);

@@ -153,10 +153,12 @@ int main(int argc, char** argv)
 //******************* File Input Functions *****************************************
 
 /*
- This function reads in the information in the user setup file "SetupLAMapping".
+ This function:
+ Reads in the information in the user setup file "SetupLAMapping".
 */
 void readLAMappingSetupParameters()
 {
+	using namespace std;
 	ifstream data;
 	string name;
 	data.open("../SetupLAMapping");
@@ -942,97 +944,99 @@ void renderSphere(float radius, int slices, int stacks)
  This function:
  Creates spheres used for the body of the LA. Created once and stored so they are much faster.
 */
+
 void createSphereVBO(float radius, int slices, int stacks)
 {
-    std::vector<float> vertices;
-    std::vector<unsigned int> indices;
-    
-	// Generate sphere vertices with positions and normals
-	for (int i = 0; i <= stacks; ++i) 
-	{
-		// Calculate the vertical angle phi (0 to PI, from top to bottom of sphere)
-		float phi = PI * i / stacks;
-		float sinPhi = sin(phi);
-		float cosPhi = cos(phi);
-		
-		for (int j = 0; j <= slices; ++j) 
-		{
-			// Calculate the horizontal angle theta (0 to 2PI, around the sphere)
-			float theta = 2.0f * PI * j / slices;
-			float sinTheta = sin(theta);
-			float cosTheta = cos(theta);
-			
-			// Convert spherical to Cartesian coordinates
-			// x = r * sin(phi) * cos(theta)
-			// y = r * cos(phi)          // y is up/down axis (poles of the sphere)
-			// z = r * sin(phi) * sin(theta)
-			float x = radius * sinPhi * cosTheta;
+    int i, j;
 
-			float y = radius * cosPhi;
-			float z = radius * sinPhi * sinTheta;
-			
-			// For a sphere, normal vectors point outward from center
-			// and are simply the normalized position vector (position/radius)
-			float nx = sinPhi * cosTheta;  // Same as x/radius
-			float ny = cosPhi;             // Same as y/radius
-			float nz = sinPhi * sinTheta;  // Same as z/radius
-			
-			// Store the vertex data in interleaved format:
-			// Each vertex has 6 floats - 3 for position (x,y,z) and 3 for normal (nx,ny,nz)
-			vertices.push_back(x);
-			vertices.push_back(y);
-			vertices.push_back(z);
-			vertices.push_back(nx);
-			vertices.push_back(ny);
-			vertices.push_back(nz);
-		}
-	}
-    
-	// Generate indices for triangle strips
-	// This section creates triangles by connecting the grid of vertices:
-	// - First defines index values that point to positions in the vertex array 
-	// - Creates two triangles for each grid cell (rectangular patch)
-	// - Each triangle is defined by three indices in counter-clockwise order
-	for (int i = 0; i < stacks; ++i) 
-	{
-		for (int j = 0; j < slices; ++j) 
-		{
-			// Calculate indices for the four corners of the current grid cell
-			int first = i * (slices + 1) + j;          // Current vertex
-			int second = first + slices + 1;           // Vertex below current
-			
-			// First triangle: Connect current vertex, vertex below, and vertex to the right
-			indices.push_back(first);
-			indices.push_back(second);
-			indices.push_back(first + 1);
-			
-			// Second triangle: Connect vertex below, vertex below+right, and vertex to the right
-			indices.push_back(second);
-			indices.push_back(second + 1);
-			indices.push_back(first + 1);
-		}
-	}
+    /* Calculate maximum sizes needed */
+    int numVertices = (stacks + 1) * (slices + 1);
+    int numVertexFloats = numVertices * 6;      /* x,y,z,nx,ny,nz */
 
-	// Store the total counts for rendering
-	NumSphereVertices = vertices.size() / 6; // 6 floats per vertex (pos + normal)
-	NumSphereIndices = indices.size();
+    int numTriangles = stacks * slices * 2;
+    int numIndices = numTriangles * 3;
 
-	// Create and setup OpenGL buffers on the GPU
-	// - Generate unique buffer IDs
-	// - Bind buffers to set them as active
-	// - Copy data from CPU arrays to GPU memory
-	glGenBuffers(1, &SphereVBO);  // Generate Vertex Buffer Object for storing positions and normals
-	glBindBuffer(GL_ARRAY_BUFFER, SphereVBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+    /* Allocate memory */
+    float *vertices = (float *)malloc(numVertexFloats * sizeof(float));
+    unsigned int *indices = (unsigned int *)malloc(numIndices * sizeof(unsigned int));
 
-	// Same process for the index buffer
-	glGenBuffers(1, &SphereIBO);  // Generate Index Buffer Object for storing triangle connections
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereIBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+    int vertexIndex = 0;
+    int indexIndex = 0;
 
-	// Unbind buffers to prevent accidental modification
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    /* Generate vertices */
+    for (i = 0; i <= stacks; i++)
+    {
+        float phi = PI * (float)i / (float)stacks;
+        float sinPhi = sin(phi);
+        float cosPhi = cos(phi);
+
+        for (j = 0; j <= slices; j++)
+        {
+            float theta = 2.0f * PI * (float)j / (float)slices;
+            float sinTheta = sin(theta);
+            float cosTheta = cos(theta);
+
+            float x = radius * sinPhi * cosTheta;
+            float y = radius * cosPhi;
+            float z = radius * sinPhi * sinTheta;
+
+            float nx = sinPhi * cosTheta;
+            float ny = cosPhi;
+            float nz = sinPhi * sinTheta;
+
+            vertices[vertexIndex++] = x;
+            vertices[vertexIndex++] = y;
+            vertices[vertexIndex++] = z;
+
+            vertices[vertexIndex++] = nx;
+            vertices[vertexIndex++] = ny;
+            vertices[vertexIndex++] = nz;
+        }
+    }
+
+    /* Generate indices */
+    for (i = 0; i < stacks; i++)
+    {
+        for (j = 0; j < slices; j++)
+        {
+            unsigned int first  = i * (slices + 1) + j;
+            unsigned int second = first + slices + 1;
+
+            indices[indexIndex++] = first;
+            indices[indexIndex++] = second;
+            indices[indexIndex++] = first + 1;
+
+            indices[indexIndex++] = second;
+            indices[indexIndex++] = second + 1;
+            indices[indexIndex++] = first + 1;
+        }
+    }
+
+    NumSphereVertices = numVertices;
+    NumSphereIndices = numIndices;
+
+    /* Upload vertex data */
+    glGenBuffers(1, &SphereVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, SphereVBO);
+    glBufferData(GL_ARRAY_BUFFER,
+                 numVertexFloats * sizeof(float),
+                 vertices,
+                 GL_STATIC_DRAW);
+
+    /* Upload index data */
+    glGenBuffers(1, &SphereIBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereIBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 numIndices * sizeof(unsigned int),
+                 indices,
+                 GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    /* Free CPU memory */
+    free(vertices);
+    free(indices);
 }
 
 /*
@@ -1067,7 +1071,8 @@ void screenShot()
 //******************* Callback Functions ***********************************************
 
 /*
- Callback when the window is reshaped.
+ This function:
+ Acts when the window is reshaped.
 */
 void reshapeCallback(GLFWwindow* window, int width, int height)
 {
@@ -1079,7 +1084,9 @@ void reshapeCallback(GLFWwindow* window, int width, int height)
 }
 
 /*
- OpenGL callback when a key is pressed.
+ This function:
+ Checks to see if a key or sequence of keys are pressed. 
+ If key in question is pressed it will call a function to do something.
  It's actions are: GLFW_PRESS, GLFW_REPEAT, and GLFW_RELEASE.
 */
 void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -1161,10 +1168,12 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 }
 
 /*
- This function is called when the mouse moves without any button pressed.
+ This function:
+ Performs an action when the mouse moves without any button pressed.
  x and y are the current mouse coordinates.
  x come in as (0, XWindowSize) and y comes in as (0, YWindowSize). 
- We translates them to MouseX (-1, 1) and MouseY (-1, 1) to corospond to the openGL window size.
+ We translates them to MouseX (-1, 1) and MouseY (-1, 1) then multiply by the RadiusOfLeftAtrium
+ to adjust it to the size of the OpenGL window.
  We then use MouseX and MouseY to determine where the mouse is in the simulation.
 */
 void mousePassiveMotionCallback(GLFWwindow* window, double x, double y)
@@ -1172,23 +1181,19 @@ void mousePassiveMotionCallback(GLFWwindow* window, double x, double y)
 	// Get ImGui IO to check if mouse is over ImGui windows
 	ImGuiIO& io = ImGui::GetIO();
 
-	//Show cursor when highlighting over IMGUI elements
-	if (Simulation.isInMouseFunctionMode)
+	// Show cursor when hovering over ImGui widgets
+	if(Simulation.isInMouseFunctionMode == true)
 	{
-		//Uncomment this to have the cursor show when it hovers the GUI in mouse function mode
-		if (io.WantCaptureMouse)
+		if (io.WantCaptureMouse == true)
 		{
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 			return; // If ImGui is capturing the mouse, do not process further
 		}
-		else
-		{
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		}
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		
 	}
 	
-	float sensitivityMultiplier = 1.2; // Sensitivity multiplier for mouse movement
+	const float sensitivityMultiplier = 1.2; // Sensitivity multiplier for mouse movement
 	MouseX = ( 2.0*x/XWindowSize - 1.0)*RadiusOfLeftAtrium *sensitivityMultiplier;
 	MouseY = (-2.0*y/YWindowSize + 1.0)*RadiusOfLeftAtrium *sensitivityMultiplier;
 }
@@ -1295,7 +1300,7 @@ void createGUI()
 	ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + 10, viewport->WorkPos.y + 10), ImGuiCond_Always, ImVec2(0.0f, 0.0f));
 	ImGuiWindowFlags status_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings;
 	
-	// Sub Gui window (Top left)
+	// Little window top left
 	ImGui::Begin("Interaction Mode", NULL, status_flags);
 		if (!Simulation.isInMouseFunctionMode)
 		{
@@ -1343,14 +1348,13 @@ void createGUI()
 
 	// Set the collapsed state if guiCollapsed is true (toggled by ctrl + h callback)
 	ImGui::SetNextWindowCollapsed(Simulation.guiCollapsed, ImGuiCond_Always);
-
-
-	// Main Controls Window
+	
+	// Main Window
 	ImGui::Begin("Control Panel", NULL, window_flags); //title of the window, NULL means no pointer to a bool to close the window, window_flags are the flags we set above
 	    
 		//update bool to match current state (makes sure clicking also works in addition to ctrl + h)
 		Simulation.guiCollapsed = ImGui::IsWindowCollapsed();
-	    
+		
 		// General simulation controls
 		if (ImGui::CollapsingHeader("Simulation Controls", ImGuiTreeNodeFlags_DefaultOpen)) //open by default
 		{

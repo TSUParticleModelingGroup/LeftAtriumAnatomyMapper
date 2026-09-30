@@ -1,0 +1,24 @@
+ Checking file IdealLeftAtrium13.0KNotTriangle/Nodes.
+ Nodes 12271 and 12272 are too close. Their separation is 0.002115 ✓
+ Nodes 12272 and 12271 are too close. Their separation is 0.002115 ✓
+ Nodes 12428 and 12429 are too close. Their separation is 0.000891 ✓
+ Nodes 12429 and 12428 are too close. Their separation is 0.000891 ✓
+ Nodes 12473 and 12494 are too close. Their separation is 0.001859 ✓
+ Nodes 12494 and 12473 are too close. Their separation is 0.001859 ✓
+ Nodes 12528 and 12428 are too close. Their separation is 0.001512 ✓	
+ Nodes 12743 and 12788 are too close. Their separation is 0.001902 ✓
+ Nodes 12751 and 12840 are too close. Their separation is 0.001753 ✓
+ Nodes 12787 and 12788 are too close. Their separation is 0.000872 ✓
+ Nodes 12788 and 12787 are too close. Their separation is 0.000872 ✓
+ Nodes 12840 and 12879 are too close. Their separation is 0.001196 ✓
+ Nodes 12879 and 12840 are too close. Their separation is 0.001196 ✓
+ Nodes 12930 and 13085 are too close. Their separation is 0.000673 ✓
+ Nodes 12979 and 13098 are too close. Their separation is 0.002533 ✓
+ Nodes 13084 and 13085 are too close. Their separation is 0.000393 ✓
+ Nodes 13085 and 13084 are too close. Their separation is 0.000393 ✓	
+ Nodes 13098 and 12979 are too close. Their separation is 0.002533 ✓
+ Nodes 13135 and 13136 are too close. Their separation is 0.001728 ✓
+ Nodes 13136 and 13135 are too close. Their separation is 0.001728 ✓
+ The average nearest seperation for all the nodes is 0.256202.
+ The cutoff seperation was 0.025620.
+

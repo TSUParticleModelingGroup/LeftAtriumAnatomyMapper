@@ -31,10 +31,6 @@
 #include "../third_party/imgui/imgui_impl_glfw.h"
 #include "../third_party/imgui/imgui_impl_opengl3.h"
 
-
-// TODO absolutely need to remove this, it can mess up a lot of code
-using namespace std;
-
 // Cuda defines
 #define FLOATMAX 3.4028235e+38f
 #define INTMAX 2147483647
@@ -107,14 +103,15 @@ const int TypeExtraTissue = 8;
 const int TypePulseNode = 100;
 
 // Color types: Assigns a color to each of the tissue type. They are set here.
-const float4 ColorStandardLA = {1.0f, 0.0f, 0.0f, 0.0f}; // Red for standard nodes (to reduce contrast)
+
 const float4 ColorBachmannsBundle = {0.2f, 0.2f, 1.0f, 0.0f}; // Blue for Bachmann's Bundle nodes and muscles by default.
-const float4 ColorAppendage = {1.0f, 0.8f, 0.3f, 0.0f}; // Orange for left atrial appendage nodes and muscles by default.
-const float4 ColorScarTissue = {0.6f, 0.6f, 0.6f, 0.0f}; // Gray for scar tissue nodes and muscles by default.
 const float4 ColorPulmonaryVeins = {1.0f, 0.4f, 0.7f, 0.0f}; // Pink for pulmonary veins nodes and muscles by default.
-const float4 ColorMitralValve = {0.5f, 0.0f, 0.5f, 0.0f}; // Purple for mitral valve nodes and muscles by default.
 const float4 ColorBackWall = {0.0f, 1.0f, 0.0f, 0.0f}; // Green for back wall nodes and muscles by default.
-const float4 ColorExtraTissue = {0.6f, 0.6f, 0.6f, 0.0f}; // Gray for extra tissue nodes and muscles by default.
+const float4 ColorMitralValve = {0.5f, 0.0f, 0.5f, 0.0f}; // Purple for mitral valve nodes and muscles by default.
+const float4 ColorAppendage = {1.0f, 0.8f, 0.3f, 0.0f}; // Orange for left atrial appendage nodes and muscles by default.
+const float4 ColorStandardLA = {1.0f, 0.0f, 0.0f, 0.0f}; // Red for standard nodes (to reduce contrast)
+const float4 ColorScarTissue = {0.6f, 0.6f, 0.6f, 0.0f}; // Gray for scar tissue nodes and muscles by default.
+const float4 ColorExtraTissue = {1.0f, 1.0f, 1.0f, 0.0f}; // White for extra tissue nodes and muscles by default.
 
 // How many nodes and muscle the simulation contains.
 // They are read in form the Raw or Bin files. 
@@ -216,32 +213,34 @@ double UpZ;
 // I'm not sure why the standard GUI technique didn't work, but this
 // fixed the issue. I may remove it in the future and spend some time
 // figuring out what is actually happening. For now, however, this
-// solution is working.
+// solution is working. // BMW I may readdress this when I get time.
 // I initialize it here. 
 int Run = 1;
 
 //******************************************** Function Prototypes ***********************************************
+// Your main function where everything begins. // BMW look over main when you get time.
+int main(int, char**);
+
 // File input Functions
-void readLAMAppingSetupParameters();  //Done
-void readNodesFromRawFile(); //Done 
-void readMusclesFromRawFile(); //Done
-void readNodesAndMusclesFromBinaryFile(); //Done
+void readLAMAppingSetupParameters();
+void readNodesFromRawFile();
+void readMusclesFromRawFile();
+void readNodesAndMusclesFromBinaryFile();
 
 // File Output Functions
-void saveBinary(); //done
+void saveBinary();
 
 // Setup Functions
 void setup();
-void checkNodes(); //done
-void linkRawNodesToMuscles(); //done
-double findAverageRadiusOfObject(); //done
-void setMuscleNaturalLength(); //done
+void checkNodes();
+void linkRawNodesToMuscles();
+double findAverageRadiusOfObject();
+void setMuscleNaturalLength();
 
 // User Action Functions
-//void setReferencePoints();//done
-void assignNodes(float3, int); // done
+void assignNodes(float3, int); 
 
-// Image Functions
+// Image Functions // BMW look over these one more time when you get a chance.
 void createImage();
 void renderSphereVBO();
 void renderSphere(float, int, int);
@@ -250,13 +249,13 @@ void screenShot();
 
 // Callback Functions
 void reshapeCallback(GLFWwindow*, int, int);
-void keyPressedCallback(GLFWwindow*, int, int, int, int);
-void mousePassiveMotionCallback(GLFWwindow*, double, double);
-void myMouseCallback(GLFWwindow*, int, int, int); // done
-void scrollWheelCallback(GLFWwindow*, double, double); //done
+void keyPressedCallback(GLFWwindow*, int, int, int, int); 
+void mousePassiveMotionCallback(GLFWwindow*, double, double); 
+void myMouseCallback(GLFWwindow*, int, int, int); 
+void scrollWheelCallback(GLFWwindow*, double, double);
 
-// Graphical User Interface Functions
-void createGUI(); //BMW
+// Graphical User Interface Functions // BMW look over createGUI when you get time.
+void createGUI();
 
 // Utility Functions (Done)
 float4 findCenterOfObject();

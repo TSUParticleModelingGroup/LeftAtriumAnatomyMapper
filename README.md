@@ -1,15 +1,10 @@
 # Interative Left Atrium Tissue Mapper
 
 
-
 <a id="selected-pics"></a>  
-## Selected Pics
-### Mapped Left Atrium
 <img src="ReadMeImages/Model_Colored.png" width=30% height=30% class='center'></img>
 
 <a id="project-aims"></a>  
-
-# Left Atrial Tissue Annotation Tool
 
 The purpose of this code is to read raw node and muscle files, allow the user to identify left atrial tissue types for use in the Left Atrial Simulator, and convert the raw files into a binary format that can be read by the simulator.
 

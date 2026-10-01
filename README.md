@@ -124,31 +124,8 @@ To make additional changes to a previously modified model:
 
 All previous modifications will be preserved. A new timestamped binary file will be created when the model is saved, ensuring that the original file is not overwritten.
 
+#### Disclosure: This simulation only works on Linux-based distros. All development and testing was done in Ubuntu.
 
-
-
-
-<a id="installation"></a>
-## Installation
-### Hardware Requirements:
-- This simulation requires a CUDA-enabled GPU from Nvidia. Click <a href="https://developer.nvidia.com/cuda-gpus">here </a> for a list of GPUs.
-
-| *Note: These are guidelines, not rules | CPU                            | GPU                   | RAM       |
-|----------------------------------------|--------------------------------|-----------------------|-----------|
-| Minimum:                               | AMD/Intel Six-Core Processor   | Any CUDA-Enabled GPU  | 16GB DDR4 |
-| Recommended:                           | AMD/Intel Eight-Core Processor | RTX 3090/Quadro A6000 | 32GB DDR5 |
-
-### Software Requirements:
-
-#### Disclosure: This simulation only works on Linux-based distros currently. All development and testing was done in Ubuntu 20.04/22.04
-
-#### This Repository contains the following:
-- [Nsight Visual Studio Code Edition](https://developer.nvidia.com/nsight-visual-studio-code-edition)
-- [CUDA](https://developer.nvidia.com/cuda-downloads)
-   - OpenGL
-        - [Nvidia Driver For OpenGL](https://developer.nvidia.com/opengl-driver)
-        - [OpenGL Index](https://www.khronos.org/registry/OpenGL/index_gl.php)
-#### Linux (Ubuntu/Debian)
   Install Nvidia CUDA Toolkit:
 
 	sudo apt update
@@ -218,72 +195,9 @@ All previous modifications will be preserved. A new timestamped binary file will
    	Time is in milliseconds (ms)
    	Mass is in grams (g)
    
-### BasicSimulationSetup
-   	This file is read at startup and tells the program to either resume the simulation from a previous run or create a new run from the 
-	frameworks in the nodes and muscles files. It also reads in some basic visualization parameters.
+### SetupLAMapping
+   	This file is read at startup and tells the program what NodesAndMuscle file to read and several view settings.
 	
-### IntermediateSimulationSetup
-   	This file is read at startup and sets base simulation settings, such as beat rate and node and muscle characteristics. 
-	It also reads in several visualization parameters.  
-
-### AdvancedSimulationSetup
-   	This file is read at startup and sets the basic physics of the simulation.
-
-<a id="simulation-runtime-controls"></a>
-## Simulation Runtime Controls
-
-  Our model includes a Graphical User Interface (GUI) to allow the user to dynamically adjust various attributes for both the simulation and various characteristics of the left atrium.
-
-  <img src="ReadMeImages/GUI.png" width=30% height=30%>
-
-### Simulation Controls
-*Primary controls for managing the simulation execution and visual output.*
-
-| Control | Description |
-| :--- | :--- |
-| **Contraction Toggle** | Enables/disables visual contraction of heart tissue |
-| **Draw Front Half Only** | Renders only the closest half of the model for clarity/performance |
-| **Show Nodes** | Toggle to draw front half/all/no nodes |
-| **Record Video** | Starts/stops recording simulation video |
-| **Screenshot** | Captures still image of current view |
-| **Simulation Speed** | Determines the amount of calculations in between render calls |
-
-### Mouse Functions
-*Interactive modes for mouse actions on 3D heart surface.*
-
-| Mode | Description |
-| :--- | :--- |
-| **Mouse Off** | Turns all mouse functions off |
-| **Ablate Mode** | Block (ablate) the signal from traveling through selected nodes |
-| **Ectopic Beat** | Sets up a recurrent timed pulse (beat) from the selected node |
-| **Ectopic Trigger** | Initiates a single pulse from the selected node |
-| **Adjust Area** | Select/modify muscle characteristics for a group of muscles |
-| **Adjust Line** | Select/modify muscle characteristics for a single muscle |
-| **Identify Node** | Identify the number that corresponds to a specific node |
-
-### Heartbeat Controls
-*Panel for management of cardiac rhythms*
-
-| Control | Description |
-| :--- | :--- |
-| **Beat Period (ms)** | Sets baseline interval between heartbeats |
-| **Ectopic Beats** | View/Adjust current ectopic beats |
-
-### Utilities
-*Tools for saving/loading simulation states.*
-
-| Utility | Description |
-| :--- | :--- |
-| **Save Settings** | Exports simulation parameters to a file for later use |
-| **Find Nodes** | Finds the ID of the top-most and front-most node |
-| **Save State** | Saves complete simulation state for short-term use |
-| **Load State** | Restores simulation from saved state |
-
-<a id="changelog"></a>
-## Changelog
-
-Refer to the changelog for details.
-
 <a id="license"></a>
 ## License
   - This code is protected by the MIT License and is free to use for personal and academic use.

@@ -11,12 +11,14 @@
 ## Project Overview
 The purpose of this code is to read in raw node and muscle files and allow the user to identify left atrial tissue types for use in the left atrial simulator. It also converts the raw files into a binary format that can be read by the simulator. 
 This code reads a raw left atrium file, which consists of a raw node file and a raw muscle file.
+
 The raw node file has the following format:
 int: Number of nodes
 int: NodeID, float: Node position x, float: Node position y, float: Node position z
 int: NodeID, float: Node position x, float: Node position y, float: Node position z
 ...
 int: NodeID, float: Node position x, float: Node position y, float: Node position z
+
 The raw muscle file has the following format:
 int: Number of muscles
 int: MuscleID, int: First node connection, int: Second node connection

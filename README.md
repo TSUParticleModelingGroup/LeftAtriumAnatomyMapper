@@ -1,61 +1,46 @@
-# Interative Left Atrium Model
+# Interative Left Atrium Tissue Mapper
 
-### Table of Contents
-- [Selected Pics](#selected-pics)
-- [Project Aims](#project-aims)
-- [Background](#background)
-- [Videos](#videos)
-- [Installation](#installation)
-- [Building And Running](#building-and-running)
-- [Simulation Setup File](#simulation-setup-file)
-- [Simulation Runtime Controls](#simulation-runtime-controls)
-- [Changelog](#changelog)
-- [License](#license)
-- [Contributing Authors](#contributing-authors)
-- [Funding Sources](#funding-sources)
-- [Acknowledgements](#acknowledgements)
-- [References](#references)
+
 
 <a id="selected-pics"></a>  
 ## Selected Pics
-### Micro Reentry ------------------------ Macro Reentry
-<img src="ReadMeImages/Micro.png" width=30% height=30% class='center'></img>
-<img src="ReadMeImages/Macro.png" width=30% height=30% class='center'></img>
-### Spiral Wave Reentry --------------- AFib Like Action
-<img src="ReadMeImages/SpiralWaves.png" width=30% height=30% class='center'></img>
-<img src="ReadMeImages/AF.png" width=30% height=30% class='center'></img>
+### Mapped Left Atrium
+<img src="ReadMeImages/Model_Colored.png" width=30% height=30% class='center'></img>
 
 <a id="project-aims"></a>  
-## Project Aims
-Our project has several key objectives. Firstly, we aim to utilize N-body techniques to develop an interactive model of the left atrium. This model will allow users to manipulate various parameters in real-time, facilitating the induction and observation of common arrhythmias.
+## Project Overview
+The purpose of this code is to read in raw node and muscle files and allow the user to identify left atrial tissue types for use in the left atrial simulator. It also converts the raw files into a binary format that can be read by the simulator. 
+This code reads a raw left atrium file, which consists of a raw node file and a raw muscle file.
+The raw node file has the following format:
+int: Number of nodes
+int: NodeID, float: Node position x, float: Node position y, float: Node position z
+int: NodeID, float: Node position x, float: Node position y, float: Node position z
+...
+int: NodeID, float: Node position x, float: Node position y, float: Node position z
+The raw muscle file has the following format:
+int: Number of muscles
+int: MuscleID, int: First node connection, int: Second node connection
+int: MuscleID, int: First node connection, int: Second node connection
+...
+int: MuscleID, int: First node connection, int: Second node connection
+The user must specify the name of the raw file in the startup file.
+The node structures are loaded along with the muscles connected to them. The natural lengths of the muscles are calculated and stored in their respective muscle structures.
+The PulsePointNode is initialized as node 0. Its tissue type, along with the tissue types of its attached muscles, is set to Bachmann's Bundle. All remaining nodes and muscles are initialized as standard left atrial (LA) tissue. These assignments can be changed later through the user interface, but they are initialized here in case the user wants the entire object to consist of standard LA tissue with a simple PulsePointNode.
+The user can then select the PulsePointNode and choose tissue types to assign from the drop-down menu on the right. The sphere attached to the mouse cursor is used to assign tissue types to nodes. Left click will change the nodes and muscles. Right clicks will change them back to standard LA type.
+The currently available tissue types are:
+Bachmann's Bundle
+Pulmonary Vein
+Back Wall
+Mitral Valve
+Left Atrial Appendage
+Scar Tissue
+Extra Tissue
+Muscles are assigned tissue types based on the node types they connect. If a muscle connects two nodes of different tissue types, the tissue type that appears earlier in the above list is assigned to the muscle.
+The PulsePointNode is always assigned the Bachmann's Bundle tissue type. If the PulsePointNode is changed during the annotation process, the previous PulsePointNode is reset to standard LA tissue. The newly selected PulsePointNode is then assigned the Bachmann's Bundle tissue type, and all affected muscles are updated accordingly.
+Once all desired tissue types have been assigned, click Save Binary. The node and muscle structures will be saved to a timestamped binary file to prevent previously saved files from being overwritten.
+The user may modify as much or as little of the model as desired. If additional changes need to be made to a previously modified file, simply specify the name of the saved binary file in the setup file and run the program again. All previous modifications will be preserved. When the updated model is saved, a new timestamped binary file will be created, ensuring that the original file is not overwritten.
 
-Secondly, we seek to create a training and study tool for electrophysiologists, researchers, and medical students. By accurately simulating left atrial arrhythmias and their treatment using simulated ablations, the model will serve as a valuable educational resource, enhancing understanding and skill development in this critical medical field.
 
-Additionally, the project aims to advance research in electrophysiology by providing a platform for exploring novel treatment strategies and studying arrhythmia mechanisms. This could lead to new insights and innovations in the field, ultimately benefiting patients with cardiac arrhythmias.
-
-In summary, the project's objectives include developing a cutting-edge model for arrhythmia simulation, providing an advanced training tool for medical professionals, and advancing research in electrophysiology.
-
-<a id="background"></a>
-## Background 
-Heart disease and strokes rank among the leading causes of death globally [1,2]. Supraventricular Tachycardia (SVT) significantly contributes to strokes, heart failure, and, in some cases, acute myocardial infarction [3-5]. Therefore, reducing SVT occurrence is crucial in our efforts to promote healthier lives free of cardiovascular diseases and strokes.
-
-SVT encompasses all cardiac arrhythmias originating above the ventricles. This abnormal heartbeat can disrupt the natural synchronization between the atria and ventricles, causing blood to stagnate in the left atrium (LA) and forming potentially lethal blood clots known as mural thrombi [6]. These clots can dislodge and travel to the brain or coronary arteries, leading to a stroke or heart attack, as seen in individuals with atrial fibrillation (AF) who face a five-fold increased stroke risk [7].
-
-Normally, the sinus node acts as the heart's pacemaker, generating an electrical impulse that dictates the heart's rhythm. Ectopic electrical impulses can disrupt this rhythm, causing the atria to flutter or beat out of sync with the ventricles [8].
-
-While SVT can often be controlled with medication and lifestyle changes, some drugs can be challenging to tolerate, and certain effective medications can have hepatotoxic effects [9]. Catheter ablation, though more invasive, has proven to be the most efficacious and safest method for treating recurring SVT [10-13].
-
-Advancements in radiofrequency (RF) catheter ablation and electro-anatomical mapping have enabled doctors to perform procedures on beating hearts that were once thought impossible [14,15]. However, much remains unknown about the causes of heart arrhythmias and how to treat them using RF catheter ablation [16]. A computer model of the LA, such as the one we have developed, can assist doctors, researchers, and medical students in rapidly and inexpensively testing ideas and observing outcomes.
-
-The LA was chosen for modeling due to its role in complex arrhythmias [17-20]. Our model simulates both electrical and mechanical activity, allowing users to adjust parameters at the muscle level and introduce ectopic events. These tools enable users to induce arrhythmias in the LA that can be eliminated through simulated ablations, all in an interactive simulation setting.
-
-<a id="videos"></a>
-## Videos
-
-Video Micro-Reenter: 		https://youtu.be/llIGgZSiTnE  
-Video Macro-Reenter: 		https://youtu.be/3m_7lrOe2cw  
-Video Spiral Wave-Reentry: 				https://youtu.be/c-ID603Vm9Q  
-Video AFib-Like: 			https://youtu.be/GG6Q7uG8OhQ   
 
 <a id="installation"></a>
 ## Installation

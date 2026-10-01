@@ -8,7 +8,6 @@
 <img src="ReadMeImages/Model_Colored.png" width=30% height=30% class='center'></img>
 
 <a id="project-aims"></a>  
-## Project Overview
 
 # Left Atrial Tissue Annotation Tool
 

@@ -9,38 +9,130 @@
 
 <a id="project-aims"></a>  
 ## Project Overview
-The purpose of this code is to read in raw node and muscle files and allow the user to identify left atrial tissue types for use in the left atrial simulator. It also converts the raw files into a binary format that can be read by the simulator. 
-This code reads a raw left atrium file, which consists of a raw node file and a raw muscle file.
+
+# Left Atrial Tissue Annotation Tool
+
+## Overview
+
+The purpose of this code is to read raw node and muscle files, allow the user to identify left atrial tissue types for use in the Left Atrial Simulator, and convert the raw files into a binary format that can be read by the simulator.
+
+The program reads a raw left atrium model consisting of a raw node file and a raw muscle file.
+
+---
+
+## Raw Node File Format
 
 The raw node file has the following format:
+
+```text
 int: Number of nodes
-int: NodeID, float: Node position x, float: Node position y, float: Node position z
-int: NodeID, float: Node position x, float: Node position y, float: Node position z
+
+int: NodeID  float: Node position x  float: Node position y  float: Node position z
+int: NodeID  float: Node position x  float: Node position y  float: Node position z
 ...
-int: NodeID, float: Node position x, float: Node position y, float: Node position z
+int: NodeID  float: Node position x  float: Node position y  float: Node position z
+```
+
+---
+
+## Raw Muscle File Format
 
 The raw muscle file has the following format:
+
+```text
 int: Number of muscles
-int: MuscleID, int: First node connection, int: Second node connection
-int: MuscleID, int: First node connection, int: Second node connection
+
+int: MuscleID  int: First node connection  int: Second node connection
+int: MuscleID  int: First node connection  int: Second node connection
 ...
-int: MuscleID, int: First node connection, int: Second node connection
+int: MuscleID  int: First node connection  int: Second node connection
+```
+
+---
+
+## Loading the Model
+
 The user must specify the name of the raw file in the startup file.
-The node structures are loaded along with the muscles connected to them. The natural lengths of the muscles are calculated and stored in their respective muscle structures.
-The PulsePointNode is initialized as node 0. Its tissue type, along with the tissue types of its attached muscles, is set to Bachmann's Bundle. All remaining nodes and muscles are initialized as standard left atrial (LA) tissue. These assignments can be changed later through the user interface, but they are initialized here in case the user wants the entire object to consist of standard LA tissue with a simple PulsePointNode.
-The user can then select the PulsePointNode and choose tissue types to assign from the drop-down menu on the right. The sphere attached to the mouse cursor is used to assign tissue types to nodes. Left click will change the nodes and muscles. Right clicks will change them back to standard LA type.
+
+The node structures are loaded along with the muscles connected to them. The natural lengths of the muscles are calculated and stored in their corresponding muscle structures.
+
+The `PulsePointNode` is initialized as node `0`. Its tissue type, along with the tissue types of its attached muscles, is set to **Bachmann's Bundle**. All remaining nodes and muscles are initialized as standard left atrial (LA) tissue.
+
+These assignments can be changed later through the user interface, but they are initialized in this manner so that the user can immediately generate a model consisting entirely of standard LA tissue with a simple `PulsePointNode`.
+
+---
+
+## Assigning Tissue Types
+
+The user can select the `PulsePointNode` and choose tissue types from the drop-down menu on the right side of the interface.
+
+A sphere attached to the mouse cursor is used to assign tissue types to nodes:
+
+* **Left Click** – Assign the selected tissue type to nodes and attached muscles.
+* **Right Click** – Reset nodes and muscles to standard LA tissue.
+
 The currently available tissue types are:
-Bachmann's Bundle
-Pulmonary Vein
-Back Wall
-Mitral Valve
-Left Atrial Appendage
-Scar Tissue
-Extra Tissue
-Muscles are assigned tissue types based on the node types they connect. If a muscle connects two nodes of different tissue types, the tissue type that appears earlier in the above list is assigned to the muscle.
-The PulsePointNode is always assigned the Bachmann's Bundle tissue type. If the PulsePointNode is changed during the annotation process, the previous PulsePointNode is reset to standard LA tissue. The newly selected PulsePointNode is then assigned the Bachmann's Bundle tissue type, and all affected muscles are updated accordingly.
-Once all desired tissue types have been assigned, click Save Binary. The node and muscle structures will be saved to a timestamped binary file to prevent previously saved files from being overwritten.
-The user may modify as much or as little of the model as desired. If additional changes need to be made to a previously modified file, simply specify the name of the saved binary file in the setup file and run the program again. All previous modifications will be preserved. When the updated model is saved, a new timestamped binary file will be created, ensuring that the original file is not overwritten.
+
+* Bachmann's Bundle
+* Pulmonary Vein
+* Back Wall
+* Mitral Valve
+* Left Atrial Appendage
+* Scar Tissue
+* Extra Tissue
+
+---
+
+## Muscle Tissue Assignment Rules
+
+Muscles are assigned tissue types based on the node types they connect.
+
+If a muscle connects two nodes with different tissue types, the muscle is assigned the tissue type that appears earlier in the following priority list:
+
+1. Bachmann's Bundle
+2. Pulmonary Vein
+3. Back Wall
+4. Mitral Valve
+5. Left Atrial Appendage
+6. Scar Tissue
+7. Extra Tissue
+
+---
+
+## PulsePointNode Behavior
+
+The `PulsePointNode` is always assigned the **Bachmann's Bundle** tissue type.
+
+If the `PulsePointNode` is changed during the annotation process:
+
+1. The previous `PulsePointNode` is reset to standard LA tissue.
+2. The newly selected node is assigned the Bachmann's Bundle tissue type.
+3. All affected muscles are updated accordingly.
+
+---
+
+## Saving the Binary File
+
+Once all desired tissue types have been assigned, click **Save Binary**.
+
+The node and muscle structures are saved to a timestamped binary file to prevent previously saved files from being overwritten.
+
+---
+
+## Editing Existing Binary Files
+
+The user may modify as much or as little of the model as desired.
+
+To make additional changes to a previously modified model:
+
+1. Specify the saved binary file in the startup file.
+2. Run the program again.
+3. Make any desired modifications.
+4. Click **Save Binary**.
+
+All previous modifications will be preserved. A new timestamped binary file will be created when the model is saved, ensuring that the original file is not overwritten.
+
+
 
 
 

@@ -2,7 +2,7 @@
 
 
 <a id="selected-pics"></a>  
-<img src="ReadMeImages/Model_Colored.png" width=30% height=30% class='center'></img>
+<img src="ReadMeImages/Model_Colored.png" width=60% height=60% class='center'></img>
 
 <a id="project-aims"></a>  
 

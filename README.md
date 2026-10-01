@@ -186,7 +186,7 @@ All previous modifications will be preserved. A new timestamped binary file will
 
     ./run
    
-### SetupLAMapping
+### SetupLAMapping File
    	This file is read at startup and tells the program what NodesAndMuscle file to read and several view settings.
 	
 <a id="license"></a>

@@ -185,15 +185,6 @@ All previous modifications will be preserved. A new timestamped binary file will
   After compiling, run the simulation:
 
     ./run
-
-<a id="simulation-setup-file"></a>    
-## Simulation Setup Files 
-	There are three simulation setup files. 
-	These files can be adjusted by the user before running a simulation to set up the basic framework of the run.
-	All units used in the simulation are as follows:
-   	Length is in millimeters (mm)
-   	Time is in milliseconds (ms)
-   	Mass is in grams (g)
    
 ### SetupLAMapping
    	This file is read at startup and tells the program what NodesAndMuscle file to read and several view settings.

@@ -260,7 +260,9 @@ void createGUI();
 // Utility Functions (Done)
 float4 findCenterOfObject();
 void centerObject();
-void rotateObject(float, int);
+void rotateXAxis(float);
+void rotateYAxis(float);
+void rotateZAxis(float);
 void translateObject(float, float, float);
 void setSingleMuscleTypeAndColor(int);
 void setAllMuscleTypesAndColors();

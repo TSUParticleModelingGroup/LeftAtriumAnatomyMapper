@@ -721,13 +721,6 @@ void assignNodes(float3 mousePos, int nodeType)
 		{
 			Node[i].type = nodeType;
 			Node[i].color = getColorFromType(nodeType);
-			for(int j = 0; j < MUSCLES_PER_NODE; j++)
-			{
-				if(Node[i].muscle[j] != -1) // If this is -1 it just means that this node is not connect to any more muscles past the previous j value.
-				{
-					Muscle[Node[i].muscle[j]].color = getColorFromType(nodeType);
-				}
-			}
 		}
 	}
 }
@@ -1118,27 +1111,27 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
         // X-axis Translations and Rotations
         if(key == GLFW_KEY_X && (action == GLFW_PRESS || action == GLFW_REPEAT))
         {
-        	if((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT)) rotateObject(-dAngle, 1);
+        	if((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT)) rotateXAxis(-dAngle);
 		else if(mods == GLFW_MOD_SHIFT) translateObject(dx, 0.0, 0.0);
-		else if(mods == GLFW_MOD_CONTROL) rotateObject(dAngle, 1);
+		else if(mods == GLFW_MOD_CONTROL) rotateXAxis(dAngle);
 		else translateObject(-dx, 0.0, 0.0);
         }
         
         // Y-axis Translations and Rotations
         if(key == GLFW_KEY_Y && (action == GLFW_PRESS || action == GLFW_REPEAT))
         {
-        	if((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT)) rotateObject(dAngle, 2);
+        	if((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT)) rotateYAxis(dAngle);
 		else if(mods == GLFW_MOD_SHIFT) translateObject(0.0, dy, 0.0);
-		else if(mods == GLFW_MOD_CONTROL) rotateObject(-dAngle, 2);
+		else if(mods == GLFW_MOD_CONTROL) rotateYAxis(-dAngle);
 		else translateObject(0.0, -dy, 0.0);
         }
         
         // Z-axis Translations and Rotations
         if(key == GLFW_KEY_Z && (action == GLFW_PRESS || action == GLFW_REPEAT))
         {
-        	if((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT)) rotateObject(-dAngle, 3);
+        	if((mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_SHIFT)) rotateZAxis(-dAngle);
 		else if(mods == GLFW_MOD_SHIFT) translateObject(0.0, 0.0, dz);
-		else if(mods == GLFW_MOD_CONTROL) rotateObject(dAngle, 3);
+		else if(mods == GLFW_MOD_CONTROL) rotateZAxis(dAngle);
 		else translateObject(0.0, 0.0, -dz);
         }
         
@@ -1310,16 +1303,15 @@ void createGUI()
 		else
 		{
 			ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "Mouse Mode");
-			if (Simulation.mouseMode == TypePulseNode) ImGui::TextUnformatted("Select: Pulse Node");
-			
+			     if (Simulation.mouseMode == TypePulseNode) ImGui::TextUnformatted("Select: Pulse Node");
 			else if (Simulation.mouseMode == TypeBachmannBundle) ImGui::TextUnformatted("Select: Bachmann's Bundle");
 			else if (Simulation.mouseMode == TypePulmonaryVeins) ImGui::TextUnformatted("Select: Pulmonary Veins");
-			else if (Simulation.mouseMode == TypeScarTissue) ImGui::TextUnformatted("Select: Back Wall");
+			else if (Simulation.mouseMode == TypeBackWall) ImGui::TextUnformatted("Select: Back Wall");
 			else if (Simulation.mouseMode == TypeMitralValve) ImGui::TextUnformatted("Select: Mitral Valve");
 			else if (Simulation.mouseMode == TypeAppendage) ImGui::TextUnformatted("Select: LA Appendage");
 			else if (Simulation.mouseMode == TypeStandardLA) ImGui::TextUnformatted("Select: StandardLA");
 			else if (Simulation.mouseMode == TypeScarTissue) ImGui::TextUnformatted("Select: Scar Tissue");
-			else if (Simulation.mouseMode == TypePulseNode) ImGui::TextUnformatted("Select: Extra Tissue");
+			else if (Simulation.mouseMode == TypeExtraTissue) ImGui::TextUnformatted("Select: Extra Tissue");
 			else ImGui::TextUnformatted("Section: None");
 		}
 		ImGui::TextUnformatted("Tab: Toggle GUI/Mouse mode");
@@ -1546,63 +1538,52 @@ void centerObject()
 	CenterOfSimulation.z = 0.0;
 }
 
-/* 
+/*
  This function:
- Physicaly rotates the object. It takes the angle then looks to see which axis to rotates.
- 1: X-axis
- 2: Y-axis
- 3: Z-axis
- You could use glRotate and this would change your view but your x,y,z locations do not get ajdusted and where we put the 
- selection sphere when selecting nodes get all screwed up so we most move all the nodes not the view.
- This is the view rotate function for reference glRotatef(dAngle, 0.0f, 0.0f, 1.0f);
-*/	
-void rotateObject(float angle, int axis)
+ Rotates the LA around the x-axis.
+*/
+void rotateXAxis(float angle)
 {
-	for(int i = 0; i < NumberOfNodes; i++)
-	{
-		Node[i].position.x -= CenterOfSimulation.x;
-		Node[i].position.y -= CenterOfSimulation.y;
-		Node[i].position.z -= CenterOfSimulation.z;
-	}
-	
 	float temp;
-	if(axis == 1) // X-axis
-	{
-		for(int i = 0; i < NumberOfNodes; i++)
-		{
-			temp = cos(angle)*Node[i].position.y - sin(angle)*Node[i].position.z;
-			Node[i].position.z  = sin(angle)*Node[i].position.y + cos(angle)*Node[i].position.z;
-			Node[i].position.y  = temp;
-		}
-		AngleOfSimulation.x += angle;
-	}
-	if(axis == 2) // Y-axis
-	{
-		for(int i = 0; i < NumberOfNodes; i++)
-		{
-			temp =  cos(-angle)*Node[i].position.x + sin(-angle)*Node[i].position.z;
-			Node[i].position.z  = -sin(-angle)*Node[i].position.x + cos(-angle)*Node[i].position.z;
-			Node[i].position.x  = temp;
-		}
-		AngleOfSimulation.y += angle;
-	}
-	if(axis == 3) // Z-axis
-	{
-		for(int i = 0; i < NumberOfNodes; i++)
-		{
-			temp = cos(angle)*Node[i].position.x - sin(angle)*Node[i].position.y;
-			Node[i].position.y  = sin(angle)*Node[i].position.x + cos(angle)*Node[i].position.y;
-			Node[i].position.x  = temp;
-		}
-		AngleOfSimulation.z += angle;
-	}
-	
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
-		Node[i].position.x += CenterOfSimulation.x;
-		Node[i].position.y += CenterOfSimulation.y;
-		Node[i].position.z += CenterOfSimulation.z;
+		temp = cos(angle)*Node[i].position.y - sin(angle)*Node[i].position.z;
+		Node[i].position.z  = sin(angle)*Node[i].position.y + cos(angle)*Node[i].position.z;
+		Node[i].position.y  = temp;
 	}
+	AngleOfSimulation.x += angle;
+}
+
+/*
+ This function: 
+ Rotates the LA around the y-axis.
+*/
+void rotateYAxis(float angle)
+{
+	float temp;
+	for(int i = 0; i < NumberOfNodes; i++)
+	{
+		temp =  cos(-angle)*Node[i].position.x + sin(-angle)*Node[i].position.z;
+		Node[i].position.z  = -sin(-angle)*Node[i].position.x + cos(-angle)*Node[i].position.z;
+		Node[i].position.x  = temp;
+	}
+	AngleOfSimulation.y += angle;
+}
+
+/*
+ This function: 
+ Rotates the LA around the z-axis.
+*/
+void rotateZAxis(float angle)
+{
+	float temp;
+	for(int i = 0; i < NumberOfNodes; i++)
+	{
+		temp = cos(angle)*Node[i].position.x - sin(angle)*Node[i].position.y;
+		Node[i].position.y  = sin(angle)*Node[i].position.x + cos(angle)*Node[i].position.y;
+		Node[i].position.x  = temp;
+	}
+	AngleOfSimulation.z += angle;
 }
 
 /* 

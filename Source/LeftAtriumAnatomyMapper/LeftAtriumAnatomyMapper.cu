@@ -1,6 +1,6 @@
 
 // Local include files
-#include "globals.h"
+#include "HeaderForLAMapper.h"
 
 /*
  In main we mostly just setup the openGL environment and kickoff the glutMainLoop function.

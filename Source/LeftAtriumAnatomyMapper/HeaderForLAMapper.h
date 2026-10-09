@@ -265,6 +265,7 @@ void rotateYAxis(float);
 void rotateZAxis(float);
 void translateObject(float, float, float);
 void setSingleMuscleTypeAndColor(int);
+int centerMouse(GLFWwindow*, double*, double*, double*);
 void setAllMuscleTypesAndColors();
 bool isNodeInMouseSphere(int, float3);
 int findClosestNodeToMouse(float3);

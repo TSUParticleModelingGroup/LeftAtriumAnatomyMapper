@@ -1104,6 +1104,7 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 			Simulation.guiCollapsed = true;
 			Simulation.mouseMode = TypeStandardLA;
 			glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			centerMouse(window, &MouseX, &MouseY, &MouseZ);
 		}
 		return;
 	}
@@ -1182,13 +1183,15 @@ void mousePassiveMotionCallback(GLFWwindow* window, double x, double y)
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 			return; // If ImGui is capturing the mouse, do not process further
 		}
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		else
+		{
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		}
 		
 	}
 	
-	const float sensitivityMultiplier = 1.2; // Sensitivity multiplier for mouse movement
-	MouseX = ( 2.0*x/XWindowSize - 1.0)*RadiusOfLeftAtrium *sensitivityMultiplier;
-	MouseY = (-2.0*y/YWindowSize + 1.0)*RadiusOfLeftAtrium *sensitivityMultiplier;
+	MouseX = ( 2.0*x/XWindowSize - 1.0)*RadiusOfLeftAtrium;
+	MouseY = (-2.0*y/YWindowSize + 1.0)*RadiusOfLeftAtrium;
 }
 
 /*
@@ -1378,20 +1381,24 @@ void createGUI()
 			// Mouse mode buttons
 			MouseX = 0.0; // Centering the mouse sphere.
 			MouseY = 0.0;
+			MouseZ = RadiusOfLeftAtrium;
+			//centerMouse(Window, &MouseX, &MouseY, &MouseZ);
 			
 			if (ImGui::Button("Set Pulse Node")) 
 			{
 				Simulation.mouseMode = TypePulseNode;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
-				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
+				//glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
+				centerMouse(Window, &MouseX, &MouseY, &MouseZ);
 			}
 			if (ImGui::Button("Set Bachmann's Bundle")) 
 			{
 				Simulation.mouseMode = TypeBachmannBundle;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
-				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
+				//glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
+				centerMouse(Window, &MouseX, &MouseY, &MouseZ);
 			}
 			if (ImGui::Button("Set Pulmonary Veins")) 
 			{
@@ -1544,6 +1551,9 @@ void centerObject()
 */
 void rotateXAxis(float angle)
 {
+	float4 centerOfObject = findCenterOfObject();
+	translateObject(-centerOfObject.x, -centerOfObject.y, -centerOfObject.z);
+	
 	float temp;
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
@@ -1552,6 +1562,8 @@ void rotateXAxis(float angle)
 		Node[i].position.y  = temp;
 	}
 	AngleOfSimulation.x += angle;
+	
+	translateObject(centerOfObject.x, centerOfObject.y, centerOfObject.z);
 }
 
 /*
@@ -1560,6 +1572,9 @@ void rotateXAxis(float angle)
 */
 void rotateYAxis(float angle)
 {
+	float4 centerOfObject = findCenterOfObject();
+	translateObject(-centerOfObject.x, -centerOfObject.y, -centerOfObject.z);
+	
 	float temp;
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
@@ -1568,6 +1583,8 @@ void rotateYAxis(float angle)
 		Node[i].position.x  = temp;
 	}
 	AngleOfSimulation.y += angle;
+	
+	translateObject(centerOfObject.x, centerOfObject.y, centerOfObject.z);
 }
 
 /*
@@ -1576,6 +1593,9 @@ void rotateYAxis(float angle)
 */
 void rotateZAxis(float angle)
 {
+	float4 centerOfObject = findCenterOfObject();
+	translateObject(-centerOfObject.x, -centerOfObject.y, -centerOfObject.z);
+	
 	float temp;
 	for(int i = 0; i < NumberOfNodes; i++)
 	{
@@ -1584,6 +1604,8 @@ void rotateZAxis(float angle)
 		Node[i].position.x  = temp;
 	}
 	AngleOfSimulation.z += angle;
+	
+	translateObject(centerOfObject.x, centerOfObject.y, centerOfObject.z);
 }
 
 /* 
@@ -1638,6 +1660,20 @@ void setAllMuscleTypesAndColors()
 	{
 		setSingleMuscleTypeAndColor(i);
 	}
+}
+
+/*
+ This function: 
+ Centers the mouse by moving it to (0, 0, Radius).
+*/
+int centerMouse(GLFWwindow* window, double* mx, double* my, double* mz)
+{
+	*mx = 0.0f;
+	*my = 0.0f;
+	*mz = RadiusOfLeftAtrium;
+	// Move cursor to center of screen. If you don't as soon as you move the mouse the sphere will move to the cursor.
+	glfwSetCursorPos(window, XWindowSize / 2.0, YWindowSize / 2.0); 
+	return 1;
 }
 
 /*

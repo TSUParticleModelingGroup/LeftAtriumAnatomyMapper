@@ -80,11 +80,11 @@ typedef struct
 // ******************************************** Globals ******************************************
 
 // Node types: Assigns a number for the different types of tissue. 
-// The oder of the number they are assigned is also very important.
+// The order of the number they are assigned is also very important.
 // This is the priority that is used to break a tie if a muscle connects
-// two different tpyes of nodes. For example if a muscle connects a
+// two different types of nodes. For example if a muscle connects a
 // member of the Bachmann's bundle to say a node of standard LA tissue
-// the muscle should act like a Bachmann's bundle musle not a standard muscle.
+// the muscle should act like a Bachmann's bundle muscle not a standard muscle.
 // In the priority assignment the smaller number is the most important.
 // They are set here.
 const int TypeBachmannBundle = 1;
@@ -96,8 +96,8 @@ const int TypeStandardLA = 6;
 const int TypeScarTissue = 7;
 const int TypeExtraTissue = 8;
 // This is not a tissue type it is where we initiate the beat.
-// The tissue type of the pulseNode is BacchannBundle 
-// This node just has the extra task of oracstrating the beat.
+// The tissue type of the pulseNode is BachmannBundle 
+// This node just has the extra task of orchestrating the beat.
 // We set it to be 100 so we can add addition tissue types above it 
 // in the future as needed.
 const int TypePulseNode = 100;
@@ -152,14 +152,14 @@ char ViewName[256] = "no view set";
 char SubGUIMessage[512] = "";
 
 // These are all the globals that are read in from the ConfigSetup.
-// They are initialize here to bogus value for error checking.ScrollSpeedSlow
+// They are initialized here to bogus value for error checking.ScrollSpeedSlow
 char NodesMusclesFileName[256] = "";
 float LineWidth = -1.0;
 float NodeRadiusAdjustment = -1.0;
 float NodePointSize = -1.0;
 float4 BackGroundColor = {1.0f, 1.0f, 1.0f, 0.0f};
 
-// This holds the average radius of the object which is use to scale the size of everything.
+// This holds the average radius of the object which is used to scale the size of everything.
 // It is calculated in findAverageRadiusOfObject().
 // It is initialized to -1.0 for error checking.
 double RadiusOfLeftAtrium = -1.0;
@@ -173,7 +173,7 @@ double MouseSelectionRadius = -1.0;
 double MouseX, MouseY, MouseZ;
 
 // Variables that are used to adjust the scroll speed of the mouse.
-// Pressing the center mouase button will toggle you between a fast and slow scroll speed.
+// Pressing the center mouse button will toggle you between a fast and slow scroll speed.
 // They are initialized here.
 double ScrollSpeedFast = 1.0;
 double ScrollSpeedSlow = 0.1;
@@ -186,7 +186,7 @@ float4 AngleOfSimulation  = {0.0f, 1.0f, 0.0f, 0.0f};
 
 // Window globals 
 // They are all initialized in setup() because some of them depend of the RadiusOfLeftAtrium
-// which is initialize in setup.
+// which is initialized in setup.
 GLFWwindow* Window; // Window pointer
 // Window size
 int XWindowSize;
@@ -222,7 +222,7 @@ int Run = 1;
 int main(int, char**);
 
 // File input Functions
-void readLAMAppingSetupParameters();
+void readLAMappingSetupParameters();
 void readNodesFromRawFile();
 void readMusclesFromRawFile();
 void readNodesAndMusclesFromBinaryFile();

@@ -20,7 +20,7 @@ int main(int argc, char** argv)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE); //This line is for compatibility with older versions of OpenGL.
 
-	// Create a windowed mode window and its OpenGL context
+	// Create a window and its OpenGL context
 	Window = glfwCreateWindow(XWindowSize, YWindowSize, "Left Atrium Mapping", NULL, NULL); // args: width, height, title, monitor, share
 
 	if (!Window) 
@@ -251,7 +251,7 @@ void readNodesFromRawFile()
 		// Setting the type to 0 for all nodes. Type 0 is for a general LA node, which is what all nodes start out as.
 		Node[i].type = TypeStandardLA; 
 		
-		// Sets all the muscle a node can connect to as -1 which indicates that no muscle is connect at this time.
+		// Sets all the muscles a node can connect to as -1 which indicates that no muscle is connected at this time.
 		for(int j = 0; j < MUSCLES_PER_NODE; j++)
 		{
 			Node[i].muscle[j] = -1; 
@@ -521,7 +521,7 @@ void setup()
 	Simulation.isInMouseFunctionMode = false;
 	Simulation.guiCollapsed = false;
 	
-	// Initial lacation of the slection sphere.
+	// Initial location of the slection sphere.
 	MouseZ = RadiusOfLeftAtrium;
 	MouseX = 0.0;
 	MouseY = 0.0;
@@ -551,7 +551,7 @@ void setup()
 
 /* 
  This function:
- Checks to see if two nodes are too close together relative to all the other node seperations. 
+ Checks to see if two nodes are too close together relative to all the other node separations. 
    1: This for loop finds all the nearest neighbor distances and then it calculates the average of this value. 
       This get a sense of how close nodes are in general. If you have more nodes they are going to be 
       closer together, this number just gets you a scale to compare to.
@@ -657,7 +657,7 @@ void linkRawNodesToMuscles()
 }
 
 /*
- This funciton: 
+ This function: 
  Finds the average radius of the object by: 
  1. Finding the center of the object.
  2. Finding the distance from each node to the center, which is the radius of that node.
@@ -710,7 +710,7 @@ void setMuscleNaturalLength()
  This function:
  Runs through all nodes and tests to see if they are in a sphere of radius MouseSelectionRadius, centered at the current mouse position.
  If it is, that node and the muscles it is connected to are set with the selected type and color.
- The pulse point node should always be of tpye Bachmann's bundle so it also checks to make sure it is not changing the type of the
+ The pulse point node should always be of type Bachmann's bundle so it also checks to make sure it is not changing the type of the
  pulse point node.
 */
 void assignNodes(float3 mousePos, int nodeType)
@@ -783,7 +783,7 @@ void createImage()
 		}
 	}
 	// If the nodes are not drawn as spheres you will be in this else case.
-	// Now some of the node we still draw as points, like node that have been ablated, ectopic nodes, or nodes connected to muscle
+	// Now some of the nodes we still draw as points, like nodes that have been ablated, ectopic nodes, or nodes connected to muscle
 	// that have been adjusted. This helps the user keep track of what has been done. This is what is done here and is based on
 	// the .isDrawNode flag.
 	else 
@@ -807,7 +807,7 @@ void createImage()
 		glEnd();
 	}
 
-	// Always draw PulsePointNode, as point a sprite so they stand out regardless of node draw mode.
+	// Always draw PulsePointNode's as a point sprite so they stand out regardless of node draw mode.
 	glPointSize(NodePointSize * 1.35f);
 	glBegin(GL_POINTS);
 		

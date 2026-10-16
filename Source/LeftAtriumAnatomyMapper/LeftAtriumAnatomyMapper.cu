@@ -834,7 +834,12 @@ void createImage()
 				{
 					if(CenterOfSimulation.z - 0.001 < Node[i].position.z && CenterOfSimulation.z - 0.001 < Node[k].position.z)  // Only drawing the nodes in the front half.
 					{
-						glColor3d(Muscle[muscleNumber].color.x, Muscle[muscleNumber].color.y, Muscle[muscleNumber].color.z);
+						if(Simulation.mouseMode == Muscle[muscleNumber].type || Simulation.mouseMode == TypeNone)
+						{
+							glColor3d(Muscle[muscleNumber].color.x, Muscle[muscleNumber].color.y, Muscle[muscleNumber].color.z);
+						}
+						else glColor3d(ColorStandardLA.x, ColorStandardLA.y, ColorStandardLA.z);
+						
 						glBegin(GL_LINES);
 							glVertex3f(Node[i].position.x, Node[i].position.y, Node[i].position.z);
 							glVertex3f(Node[k].position.x, Node[k].position.y, Node[k].position.z);
@@ -843,7 +848,11 @@ void createImage()
 				}
 				else
 				{
-					glColor3d(Muscle[muscleNumber].color.x, Muscle[muscleNumber].color.y, Muscle[muscleNumber].color.z);
+					if(Simulation.mouseMode == Muscle[muscleNumber].type || Simulation.mouseMode == TypeNone)
+					{
+						glColor3d(Muscle[muscleNumber].color.x, Muscle[muscleNumber].color.y, Muscle[muscleNumber].color.z);
+					}
+					else glColor3d(ColorStandardLA.x, ColorStandardLA.y, ColorStandardLA.z);
 					glBegin(GL_LINES);
 						glVertex3f(Node[i].position.x, Node[i].position.y, Node[i].position.z);
 						glVertex3f(Node[k].position.x, Node[k].position.y, Node[k].position.z);
@@ -1095,14 +1104,14 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 		{
 			Simulation.isInMouseFunctionMode = false;
 			Simulation.guiCollapsed = false;
-			Simulation.mouseMode = TypeStandardLA;
+			Simulation.mouseMode = TypeNone;
 			glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
 		else
 		{
 			Simulation.isInMouseFunctionMode = true;
 			Simulation.guiCollapsed = true;
-			Simulation.mouseMode = TypeStandardLA;
+			Simulation.mouseMode = TypeNone;
 			glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 			centerMouse(window, &MouseX, &MouseY, &MouseZ);
 		}
@@ -1237,18 +1246,20 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 					Node[nodeId].type = TypeBachmannBundle;
 					Node[nodeId].color = getColorFromType(TypeBachmannBundle);
 					PulsePointNode = nodeId;
+					setAllMuscleTypesAndColors();
 				}
 			}
 			// b: Setting all other node types.
-			else
+			else if(Simulation.mouseMode != TypeNone)
 			{
 				assignNodes(mousePos, Simulation.mouseMode);
+				setAllMuscleTypesAndColors();
 			}
-			// c: Updating muscles.
-			setAllMuscleTypesAndColors();
+			// c: Updating muscles. BMW
+			//setAllMuscleTypesAndColors();
 		}
 		// 4: Reverting selected nodes back to standard LA type, on right mouse button pressed
-		else if(button == GLFW_MOUSE_BUTTON_RIGHT)
+		else if(button == GLFW_MOUSE_BUTTON_RIGHT && Simulation.mouseMode != TypeNone)
 		{
 			assignNodes(mousePos, TypeStandardLA);
 			setAllMuscleTypesAndColors();
@@ -1306,16 +1317,20 @@ void createGUI()
 		else
 		{
 			ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "Mouse Mode");
-			     if (Simulation.mouseMode == TypePulseNode) ImGui::TextUnformatted("Select: Pulse Node");
+			     if (Simulation.mouseMode == TypeNone) ImGui::TextUnformatted("Select: None");
+			else if (Simulation.mouseMode == TypePulseNode) ImGui::TextUnformatted("Select: Pulse Node");
 			else if (Simulation.mouseMode == TypeBachmannBundle) ImGui::TextUnformatted("Select: Bachmann's Bundle");
-			else if (Simulation.mouseMode == TypePulmonaryVeins) ImGui::TextUnformatted("Select: Pulmonary Veins");
+			else if (Simulation.mouseMode == TypePulmonaryVeinLS) ImGui::TextUnformatted("Select: Pulmonary Vein Left Superior");
+			else if (Simulation.mouseMode == TypePulmonaryVeinLI) ImGui::TextUnformatted("Select: Pulmonary Vein Left Inferior");
+			else if (Simulation.mouseMode == TypePulmonaryVeinRS) ImGui::TextUnformatted("Select: Pulmonary Vein Right Superior");
+			else if (Simulation.mouseMode == TypePulmonaryVeinRI) ImGui::TextUnformatted("Select: Pulmonary Vein Right Inferior");
 			else if (Simulation.mouseMode == TypeBackWall) ImGui::TextUnformatted("Select: Back Wall");
 			else if (Simulation.mouseMode == TypeMitralValve) ImGui::TextUnformatted("Select: Mitral Valve");
 			else if (Simulation.mouseMode == TypeAppendage) ImGui::TextUnformatted("Select: LA Appendage");
 			else if (Simulation.mouseMode == TypeStandardLA) ImGui::TextUnformatted("Select: StandardLA");
 			else if (Simulation.mouseMode == TypeScarTissue) ImGui::TextUnformatted("Select: Scar Tissue");
 			else if (Simulation.mouseMode == TypeExtraTissue) ImGui::TextUnformatted("Select: Extra Tissue");
-			else ImGui::TextUnformatted("Section: None");
+			else ImGui::TextUnformatted("Section: Unknown");
 		}
 		ImGui::TextUnformatted("Tab: Toggle GUI/Mouse mode");
 		if (SubGUIMessage[0] != '\0')
@@ -1384,6 +1399,14 @@ void createGUI()
 			MouseZ = RadiusOfLeftAtrium;
 			//centerMouse(Window, &MouseX, &MouseY, &MouseZ);
 			
+			if (ImGui::Button("Set None")) 
+			{
+				Simulation.mouseMode = TypeNone;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				//glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
+				centerMouse(Window, &MouseX, &MouseY, &MouseZ);
+			}
 			if (ImGui::Button("Set Pulse Node")) 
 			{
 				Simulation.mouseMode = TypePulseNode;
@@ -1400,9 +1423,30 @@ void createGUI()
 				//glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 				centerMouse(Window, &MouseX, &MouseY, &MouseZ);
 			}
-			if (ImGui::Button("Set Pulmonary Veins")) 
+			if (ImGui::Button("Set Pulmonary Vein Left Superior")) 
 			{
-				Simulation.mouseMode = TypePulmonaryVeins;
+				Simulation.mouseMode = TypePulmonaryVeinLS;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
+			}
+			if (ImGui::Button("Set Pulmonary Vein Left Inferior")) 
+			{
+				Simulation.mouseMode = TypePulmonaryVeinLI;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
+			}
+			if (ImGui::Button("Set Pulmonary Vein Right Superior")) 
+			{
+				Simulation.mouseMode = TypePulmonaryVeinRS;
+				Simulation.isInMouseFunctionMode = true;
+				Simulation.guiCollapsed = true;
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
+			}
+			if (ImGui::Button("Set Pulmonary VeinRight Inferior")) 
+			{
+				Simulation.mouseMode = TypePulmonaryVeinRI;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
@@ -1723,7 +1767,10 @@ int findClosestNodeToMouse(float3 mousePos)
 float4 getColorFromType(int type)
 {	
 	if(type == TypeBachmannBundle) return ColorBachmannsBundle;
-	if(type == TypePulmonaryVeins) return ColorPulmonaryVeins;
+	if(type == TypePulmonaryVeinLS) return ColorPulmonaryVeins;
+	if(type == TypePulmonaryVeinLI) return ColorPulmonaryVeins;
+	if(type == TypePulmonaryVeinRS) return ColorPulmonaryVeins;
+	if(type == TypePulmonaryVeinRI) return ColorPulmonaryVeins;
 	if(type == TypeBackWall) return ColorBackWall;
 	if(type == TypeMitralValve) return ColorMitralValve;
 	if(type == TypeAppendage) return ColorAppendage;

@@ -87,8 +87,12 @@ typedef struct
 // the muscle should act like a Bachmann's bundle muscle not a standard muscle.
 // In the priority assignment the smaller number is the most important.
 // They are set here.
+const int TypeNone = 0;
 const int TypeBachmannBundle = 1;
-const int TypePulmonaryVeins = 2;
+const int TypePulmonaryVeinLS = 20;
+const int TypePulmonaryVeinLI = 21;
+const int TypePulmonaryVeinRS = 22;
+const int TypePulmonaryVeinRI = 23;
 const int TypeBackWall = 3;
 const int TypeMitralValve = 4;
 const int TypeAppendage = 5;
@@ -135,7 +139,7 @@ simulationSwitchesStructure Simulation;
 // They are initialized in the function glGenBuffers(int, &GLuint);
 GLuint SphereVBO, SphereIBO; 
 // Number of vertices and indices in the sphere geometry
-// They are initialized in the function createSphereVBO(float, int, int).
+// They are initialized in the function createSphereVBO(float, inTypePulmonaryVeint, int).
 GLuint NumSphereVertices, NumSphereIndices;
 
 // This is the node where the beat initiates from. 

@@ -504,7 +504,7 @@ void setup()
 	readLAMappingSetupParameters();
 	
 	// If a muscle is connected to two nodes of different types, we need to determine which type to assign to the muscle.
-	// We will use the following priority list to make this decision. The sooner you apear in the list the higher your priority.
+	// We will use the following priority list to make this decision. The sooner you appear in the list the higher your priority.
 	PriorityList[0] = TypeBachmannBundle;
 	PriorityList[1] = TypePulmonaryVeinLS;
 	PriorityList[2] = TypePulmonaryVeinLI;

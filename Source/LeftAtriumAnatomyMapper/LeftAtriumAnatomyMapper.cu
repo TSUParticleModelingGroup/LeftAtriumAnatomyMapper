@@ -7,6 +7,18 @@
 */
 int main(int argc, char** argv)
 {
+	PriorityList[0] = TypeBachmannBundle;
+	PriorityList[1] = TypePulmonaryVeinLS;
+	PriorityList[2] = TypePulmonaryVeinLI;
+	PriorityList[3] = TypePulmonaryVeinRS;
+	PriorityList[4] = TypePulmonaryVeinRI;
+	PriorityList[5] = TypeBackWall;
+	PriorityList[6] = TypeMitralValve;
+	PriorityList[7] = TypeAppendage;
+	PriorityList[8] = TypeStandardLA;
+	PriorityList[9] = TypeScarTissue;
+	PriorityList[10] = TypeExtraTissue;
+	
 	setup();
 	
 	if(!glfwInit()) // Initialize GLFW, check for failure
@@ -491,6 +503,20 @@ void setup()
 {	
 	readLAMappingSetupParameters();
 	
+	// If a muscle is connected to two nodes of different types, we need to determine which type to assign to the muscle.
+	// We will use the following priority list to make this decision. The sooner you apear in the list the higher your priority.
+	PriorityList[0] = TypeBachmannBundle;
+	PriorityList[1] = TypePulmonaryVeinLS;
+	PriorityList[2] = TypePulmonaryVeinLI;
+	PriorityList[3] = TypePulmonaryVeinRS;
+	PriorityList[4] = TypePulmonaryVeinRI;
+	PriorityList[5] = TypeBackWall;
+	PriorityList[6] = TypeMitralValve;
+	PriorityList[7] = TypeAppendage;
+	PriorityList[8] = TypeStandardLA;
+	PriorityList[9] = TypeScarTissue;
+	PriorityList[10] = TypeExtraTissue;
+	
 	char *extension = strrchr(NodesMusclesFileName, '.');
 	bool isBinaryInput = (extension != NULL && strcmp(extension, ".bin") == 0);
 
@@ -834,7 +860,7 @@ void createImage()
 				{
 					if(CenterOfSimulation.z - 0.001 < Node[i].position.z && CenterOfSimulation.z - 0.001 < Node[k].position.z)  // Only drawing the nodes in the front half.
 					{
-						if(Simulation.mouseMode == Muscle[muscleNumber].type || Simulation.mouseMode == TypeNone)
+						if(Simulation.mouseMode == Muscle[muscleNumber].type || Simulation.mouseMode == TypeStandardLA)
 						{
 							glColor3d(Muscle[muscleNumber].color.x, Muscle[muscleNumber].color.y, Muscle[muscleNumber].color.z);
 						}
@@ -848,7 +874,7 @@ void createImage()
 				}
 				else
 				{
-					if(Simulation.mouseMode == Muscle[muscleNumber].type || Simulation.mouseMode == TypeNone)
+					if(Simulation.mouseMode == Muscle[muscleNumber].type || Simulation.mouseMode == TypeStandardLA)
 					{
 						glColor3d(Muscle[muscleNumber].color.x, Muscle[muscleNumber].color.y, Muscle[muscleNumber].color.z);
 					}
@@ -1104,14 +1130,14 @@ void keyPressedCallback(GLFWwindow* window, int key, int scancode, int action, i
 		{
 			Simulation.isInMouseFunctionMode = false;
 			Simulation.guiCollapsed = false;
-			Simulation.mouseMode = TypeNone;
+			Simulation.mouseMode = TypeStandardLA;
 			glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
 		else
 		{
 			Simulation.isInMouseFunctionMode = true;
 			Simulation.guiCollapsed = true;
-			Simulation.mouseMode = TypeNone;
+			Simulation.mouseMode = TypeStandardLA;
 			glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 			centerMouse(window, &MouseX, &MouseY, &MouseZ);
 		}
@@ -1250,16 +1276,14 @@ void myMouseCallback(GLFWwindow* window, int button, int action, int mods)
 				}
 			}
 			// b: Setting all other node types.
-			else if(Simulation.mouseMode != TypeNone)
+			else
 			{
 				assignNodes(mousePos, Simulation.mouseMode);
 				setAllMuscleTypesAndColors();
 			}
-			// c: Updating muscles. BMW
-			//setAllMuscleTypesAndColors();
 		}
 		// 4: Reverting selected nodes back to standard LA type, on right mouse button pressed
-		else if(button == GLFW_MOUSE_BUTTON_RIGHT && Simulation.mouseMode != TypeNone)
+		else if(button == GLFW_MOUSE_BUTTON_RIGHT)
 		{
 			assignNodes(mousePos, TypeStandardLA);
 			setAllMuscleTypesAndColors();
@@ -1317,7 +1341,7 @@ void createGUI()
 		else
 		{
 			ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "Mouse Mode");
-			     if (Simulation.mouseMode == TypeNone) ImGui::TextUnformatted("Select: None");
+			     if (Simulation.mouseMode == TypeStandardLA) ImGui::TextUnformatted("Select: StandardLA");
 			else if (Simulation.mouseMode == TypePulseNode) ImGui::TextUnformatted("Select: Pulse Node");
 			else if (Simulation.mouseMode == TypeBachmannBundle) ImGui::TextUnformatted("Select: Bachmann's Bundle");
 			else if (Simulation.mouseMode == TypePulmonaryVeinLS) ImGui::TextUnformatted("Select: Pulmonary Vein Left Superior");
@@ -1327,7 +1351,6 @@ void createGUI()
 			else if (Simulation.mouseMode == TypeBackWall) ImGui::TextUnformatted("Select: Back Wall");
 			else if (Simulation.mouseMode == TypeMitralValve) ImGui::TextUnformatted("Select: Mitral Valve");
 			else if (Simulation.mouseMode == TypeAppendage) ImGui::TextUnformatted("Select: LA Appendage");
-			else if (Simulation.mouseMode == TypeStandardLA) ImGui::TextUnformatted("Select: StandardLA");
 			else if (Simulation.mouseMode == TypeScarTissue) ImGui::TextUnformatted("Select: Scar Tissue");
 			else if (Simulation.mouseMode == TypeExtraTissue) ImGui::TextUnformatted("Select: Extra Tissue");
 			else ImGui::TextUnformatted("Section: Unknown");
@@ -1399,13 +1422,12 @@ void createGUI()
 			MouseZ = RadiusOfLeftAtrium;
 			//centerMouse(Window, &MouseX, &MouseY, &MouseZ);
 			
-			if (ImGui::Button("Set None")) 
+			if (ImGui::Button("Set Standard LA Node")) 
 			{
-				Simulation.mouseMode = TypeNone;
+				Simulation.mouseMode = TypeStandardLA;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
-				//glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
-				centerMouse(Window, &MouseX, &MouseY, &MouseZ);
+				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
 			}
 			if (ImGui::Button("Set Pulse Node")) 
 			{
@@ -1482,13 +1504,6 @@ void createGUI()
 			if (ImGui::Button("Set Extra Tissue")) 
 			{
 				Simulation.mouseMode = TypeExtraTissue;
-				Simulation.isInMouseFunctionMode = true;
-				Simulation.guiCollapsed = true;
-				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
-			}
-			if (ImGui::Button("Set Standard LA Node")) 
-			{
-				Simulation.mouseMode = TypeStandardLA;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
@@ -1681,8 +1696,15 @@ void setSingleMuscleTypeAndColor(int muscleId)
 {
 	int typeA = Node[Muscle[muscleId].nodeA].type;
 	int typeB = Node[Muscle[muscleId].nodeB].type;
+	int priorityA, priorityB;
 	
-	if(typeA <= typeB)
+	for(int i = 0; i < NUMBER_OF_TYPES; i++)
+	{
+		if(typeA == PriorityList[i]) priorityA = i;
+		if(typeB == PriorityList[i]) priorityB = i;
+	}
+	
+	if(priorityA <= priorityB)
 	{
 		Muscle[muscleId].type = typeA;
 		Muscle[muscleId].color = getColorFromType(typeA);

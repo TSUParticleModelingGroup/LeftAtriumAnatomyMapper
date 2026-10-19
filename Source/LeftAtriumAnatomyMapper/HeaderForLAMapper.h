@@ -47,6 +47,9 @@
 // This sets how many muscle can be connected to a node.
 #define MUSCLES_PER_NODE 20
 
+// The number of different tissue types used.
+#define NUMBER_OF_TYPES 11
+
 // ************************************************* Structures **********************************************************
 // Everything a node holds.
 typedef struct 
@@ -87,9 +90,8 @@ typedef struct
 // the muscle should act like a Bachmann's bundle muscle not a standard muscle.
 // In the priority assignment the smaller number is the most important.
 // They are set here.
-const int TypeNone = 0;
 const int TypeBachmannBundle = 1;
-const int TypePulmonaryVeinLS = 20;
+const int TypePulmonaryVeinLS = 2;
 const int TypePulmonaryVeinLI = 21;
 const int TypePulmonaryVeinRS = 22;
 const int TypePulmonaryVeinRI = 23;
@@ -106,8 +108,11 @@ const int TypeExtraTissue = 8;
 // in the future as needed.
 const int TypePulseNode = 100;
 
-// Color types: Assigns a color to each of the tissue type. They are set here.
+// If a muscle is connected to two nodes of different types, we need to determine which type to assign to the muscle.
+// We will use the following priority list to make this decision.
+int PriorityList[NUMBER_OF_TYPES];
 
+// Color types: Assigns a color to each of the tissue type. They are set here.
 const float4 ColorBachmannsBundle = {0.2f, 0.2f, 1.0f, 0.0f}; // Blue for Bachmann's Bundle nodes and muscles by default.
 const float4 ColorPulmonaryVeins = {1.0f, 0.4f, 0.7f, 0.0f}; // Pink for pulmonary veins nodes and muscles by default.
 const float4 ColorBackWall = {0.0f, 1.0f, 0.0f, 0.0f}; // Green for back wall nodes and muscles by default.

@@ -188,10 +188,9 @@ double ScrollSpeedFast = 1.0;
 double ScrollSpeedSlow = 0.1;
 double ScrollSpeed = ScrollSpeedFast;
 
-// These keep track of where the view is as you translate and rotate the object.
-// They are initialized here.
+// This keeps track of where the view is as you translate the object.
+// If is initialized here.
 float4 CenterOfSimulation = {0.0f, 0.0f, 0.0f, 0.0f};
-float4 AngleOfSimulation  = {0.0f, 1.0f, 0.0f, 0.0f};
 
 // Window globals 
 // They are all initialized in setup() because some of them depend of the RadiusOfLeftAtrium

@@ -1620,7 +1620,6 @@ void rotateXAxis(float angle)
 		Node[i].position.z  = sin(angle)*Node[i].position.y + cos(angle)*Node[i].position.z;
 		Node[i].position.y  = temp;
 	}
-	AngleOfSimulation.x += angle;
 	
 	translateObject(centerOfObject.x, centerOfObject.y, centerOfObject.z);
 }
@@ -1641,7 +1640,6 @@ void rotateYAxis(float angle)
 		Node[i].position.z  = -sin(-angle)*Node[i].position.x + cos(-angle)*Node[i].position.z;
 		Node[i].position.x  = temp;
 	}
-	AngleOfSimulation.y += angle;
 	
 	translateObject(centerOfObject.x, centerOfObject.y, centerOfObject.z);
 }
@@ -1662,7 +1660,6 @@ void rotateZAxis(float angle)
 		Node[i].position.y  = sin(angle)*Node[i].position.x + cos(angle)*Node[i].position.y;
 		Node[i].position.x  = temp;
 	}
-	AngleOfSimulation.z += angle;
 	
 	translateObject(centerOfObject.x, centerOfObject.y, centerOfObject.z);
 }

@@ -96,7 +96,7 @@ const int TypePulmonaryVeinLI = 21;
 const int TypePulmonaryVeinRS = 22;
 const int TypePulmonaryVeinRI = 23;
 const int TypeBackWall = 3;
-const int TypeMitralValve = 4;
+const int TypeMitralValveOpening = 4;
 const int TypeAppendage = 5;
 const int TypeStandardLA = 6;
 const int TypeScarTissue = 7;
@@ -116,7 +116,7 @@ int PriorityList[NUMBER_OF_TYPES];
 const float4 ColorBachmannsBundle = {0.2f, 0.2f, 1.0f, 0.0f}; // Blue for Bachmann's Bundle nodes and muscles by default.
 const float4 ColorPulmonaryVeins = {1.0f, 0.4f, 0.7f, 0.0f}; // Pink for pulmonary veins nodes and muscles by default.
 const float4 ColorBackWall = {0.0f, 1.0f, 0.0f, 0.0f}; // Green for back wall nodes and muscles by default.
-const float4 ColorMitralValve = {0.5f, 0.0f, 0.5f, 0.0f}; // Purple for mitral valve nodes and muscles by default.
+const float4 ColorMitralValveOpening = {0.5f, 0.0f, 0.5f, 0.0f}; // Purple for mitral valve nodes and muscles by default.
 const float4 ColorAppendage = {1.0f, 0.8f, 0.3f, 0.0f}; // Orange for left atrial appendage nodes and muscles by default.
 const float4 ColorStandardLA = {1.0f, 0.0f, 0.0f, 0.0f}; // Red for standard nodes (to reduce contrast)
 const float4 ColorScarTissue = {0.6f, 0.6f, 0.6f, 0.0f}; // Gray for scar tissue nodes and muscles by default.

@@ -13,7 +13,7 @@ int main(int argc, char** argv)
 	PriorityList[3] = TypePulmonaryVeinRS;
 	PriorityList[4] = TypePulmonaryVeinRI;
 	PriorityList[5] = TypeBackWall;
-	PriorityList[6] = TypeMitralValve;
+	PriorityList[6] = TypeMitralValveOpening;
 	PriorityList[7] = TypeAppendage;
 	PriorityList[8] = TypeStandardLA;
 	PriorityList[9] = TypeScarTissue;
@@ -511,7 +511,7 @@ void setup()
 	PriorityList[3] = TypePulmonaryVeinRS;
 	PriorityList[4] = TypePulmonaryVeinRI;
 	PriorityList[5] = TypeBackWall;
-	PriorityList[6] = TypeMitralValve;
+	PriorityList[6] = TypeMitralValveOpening;
 	PriorityList[7] = TypeAppendage;
 	PriorityList[8] = TypeStandardLA;
 	PriorityList[9] = TypeScarTissue;
@@ -1349,7 +1349,7 @@ void createGUI()
 			else if (Simulation.mouseMode == TypePulmonaryVeinRS) ImGui::TextUnformatted("Select: Pulmonary Vein Right Superior");
 			else if (Simulation.mouseMode == TypePulmonaryVeinRI) ImGui::TextUnformatted("Select: Pulmonary Vein Right Inferior");
 			else if (Simulation.mouseMode == TypeBackWall) ImGui::TextUnformatted("Select: Back Wall");
-			else if (Simulation.mouseMode == TypeMitralValve) ImGui::TextUnformatted("Select: Mitral Valve");
+			else if (Simulation.mouseMode == TypeMitralValveOpening) ImGui::TextUnformatted("Select: Mitral Valve");
 			else if (Simulation.mouseMode == TypeAppendage) ImGui::TextUnformatted("Select: LA Appendage");
 			else if (Simulation.mouseMode == TypeScarTissue) ImGui::TextUnformatted("Select: Scar Tissue");
 			else if (Simulation.mouseMode == TypeExtraTissue) ImGui::TextUnformatted("Select: Extra Tissue");
@@ -1482,7 +1482,7 @@ void createGUI()
 			}
 			if (ImGui::Button("Set Mitral Valve")) 
 			{
-				Simulation.mouseMode = TypeMitralValve;
+				Simulation.mouseMode = TypeMitralValveOpening;
 				Simulation.isInMouseFunctionMode = true;
 				Simulation.guiCollapsed = true;
 				glfwSetCursorPos(Window, XWindowSize/2.0, YWindowSize/2.0); // Setting the cursor to the center.
@@ -1791,7 +1791,7 @@ float4 getColorFromType(int type)
 	if(type == TypePulmonaryVeinRS) return ColorPulmonaryVeins;
 	if(type == TypePulmonaryVeinRI) return ColorPulmonaryVeins;
 	if(type == TypeBackWall) return ColorBackWall;
-	if(type == TypeMitralValve) return ColorMitralValve;
+	if(type == TypeMitralValveOpening) return ColorMitralValveOpening;
 	if(type == TypeAppendage) return ColorAppendage;
 	if(type == TypeStandardLA) return ColorStandardLA;
 	if(type == TypeScarTissue) return ColorScarTissue;
